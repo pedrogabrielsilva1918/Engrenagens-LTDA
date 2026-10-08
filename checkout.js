@@ -100,7 +100,7 @@ async function saveOrderLocally(data) {
 }
 
 async function createOrderOnApi(data) {
-  const baseUrl = (window.API_BASE_URL || '').replace(/\\/$/, '');
+  const baseUrl = (window.API_BASE_URL || '').replace(/\/$/, '');
   if (!baseUrl) return { order: await saveOrderLocally(data), demo: true };
 
   const response = await fetch(`${baseUrl}/api/orders`, {
