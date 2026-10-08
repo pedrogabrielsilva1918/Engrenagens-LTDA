@@ -1,0 +1,51 @@
+body{background:var(--bg)}
+.checkoutStep{display:flex;align-items:center;gap:9px;font-size:12px;color:var(--muted);font-weight:800}
+.checkoutStep .step{width:27px;height:27px;border-radius:50%;display:grid;place-items:center;background:#e9e6df;color:#777}
+.checkoutStep .step.active{background:var(--brand);color:#111}
+.checkoutStep .line{width:35px;height:1px;background:var(--line)}
+.checkoutPage{padding:46px 0 70px}
+.checkoutHeader{display:flex;justify-content:space-between;align-items:end;gap:24px;margin-bottom:24px}
+.checkoutHeader h1{font-size:46px;line-height:1;letter-spacing:-.055em;margin:0 0 9px}
+.checkoutHeader p{max-width:700px;color:var(--muted);margin:0}
+.backLink{text-decoration:none;color:#111;font-weight:900;font-size:13px;white-space:nowrap}
+.checkoutGrid{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(320px,.75fr);gap:18px;align-items:start}
+.checkoutCard{background:#fff;border:1px solid var(--line);border-radius:22px;padding:25px}
+.cardTitle{display:flex;align-items:center;gap:10px;border-bottom:1px solid #eee;padding-bottom:13px}
+.cardTitle span{font-size:10px;letter-spacing:.12em;text-transform:uppercase;font-weight:950;color:#999}
+.cardTitle h2{margin:0;font-size:19px;letter-spacing:-.025em}
+.spaceTop{margin-top:29px}
+.formGrid{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-top:15px}
+.field.full{grid-column:1/-1}
+.field label{display:block;font-size:11px;font-weight:900;margin-bottom:5px}
+.field input,.field select,.field textarea{width:100%;border:1px solid var(--line);background:#fff;border-radius:11px;padding:12px;outline:none}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:#aaa}
+.field textarea{min-height:90px;resize:vertical}
+.paymentOptions{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:15px}
+.paymentOption{border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;gap:10px;align-items:flex-start;cursor:pointer}
+.paymentOption:has(input:checked){border-color:#111;box-shadow:inset 0 0 0 1px #111}
+.paymentOption input{margin-top:3px;accent-color:#111}
+.paymentOption b{display:block;font-size:13px}
+.paymentOption small{display:block;color:#888;margin-top:3px;font-size:10px}
+.demoNotice{margin-top:13px;padding:12px 13px;border-radius:12px;background:#f7f3e9;color:#6e6250;font-size:11px}
+.confirmBtn{width:100%;margin-top:16px;padding:14px;border:0;border-radius:12px;background:#111;color:#fff;font-weight:950;font-size:14px;cursor:pointer}
+.confirmBtn:hover{background:#222}
+.formError{min-height:18px;margin-top:8px;color:var(--danger);font-size:11px}
+.summaryCard{position:sticky;top:100px}
+.orderItems{margin:15px 0}
+.orderItem{display:grid;grid-template-columns:50px 1fr auto;gap:10px;padding:11px 0;border-bottom:1px solid #eee}
+.orderThumb{width:50px;height:50px;border-radius:11px;background:#ebe7de;display:grid;place-items:center}
+.orderItem b{font-size:12px;line-height:1.2}
+.orderItem small{display:block;color:#888;margin-top:4px}
+.orderItem strong{font-size:12px}
+.summaryLine,.summaryTotal{display:flex;justify-content:space-between;gap:15px;padding-top:12px;font-size:13px}
+.summaryLine.muted{color:#888}
+.summaryTotal{border-top:1px solid var(--line);margin-top:12px;font-weight:950;font-size:15px;padding-top:16px}
+.summaryTotal strong{font-size:21px}
+.summaryHint{font-size:10px;color:#999;line-height:1.5;margin-top:15px}
+.emptyState,.successState{background:#fff;border:1px solid var(--line);border-radius:22px;padding:50px 25px;text-align:center}
+.emptyState h2,.successState h2{font-size:31px;letter-spacing:-.04em;margin:8px 0}
+.emptyState p,.successState p{color:var(--muted);margin:0 auto 18px;max-width:620px}
+.successIcon{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;margin:0 auto 15px;background:#e8f5ef;color:var(--success);font-size:28px;font-weight:950}
+.hidden{display:none!important}
+@media(max-width:820px){.checkoutGrid{grid-template-columns:1fr}.summaryCard{position:static}.checkoutHeader{display:block}.backLink{display:inline-block;margin-top:15px}.paymentOptions{grid-template-columns:1fr}.checkoutStep{display:none}}
+@media(max-width:600px){.checkoutPage{padding-top:28px}.checkoutHeader h1{font-size:36px}.checkoutCard{padding:19px}.formGrid{grid-template-columns:1fr}.field.full{grid-column:auto}}
