@@ -82,7 +82,44 @@ function createOrderNumber() {
   return `ENG-${stamp}-${random}`;
 }
 
-confirmButton.addEventListener('click', () => {
+async function saveOrderLocally(data) {
+  const orderNumber = createOrderNumber();
+  const subtotal = getSubtotal();
+  const order = {
+    orderNumber,
+    createdAt: new Date().toISOString(),
+    status: 'pending_payment',
+    payment: data.payment,
+    customer: data,
+    items: validCart,
+    subtotal,
+    total: subtotal
+  };
+  localStorage.setItem('engrenagens-last-order', JSON.stringify(order));
+  return order;
+}
+
+async function createOrderOnApi(data) {
+  const baseUrl = (window.API_BASE_URL || '').replace(/\\/$/, '');
+  if (!baseUrl) return { order: await saveOrderLocally(data), demo: true };
+
+  const response = await fetch(`${baseUrl}/api/orders`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ customer: data, payment: data.payment, items: validCart })
+  });
+
+  let payload = {};
+  try { payload = await response.json(); } catch { /* resposta sem JSON */ }
+
+  if (!response.ok) {
+    throw new Error(payload.error || 'Não foi possível criar o pedido.');
+  }
+
+  return { order: payload.order, demo: false };
+}
+
+confirmButton.addEventListener('click', async () => {
   formError.textContent = '';
   const data = collectFormData();
   const error = validate(data);
@@ -91,24 +128,28 @@ confirmButton.addEventListener('click', () => {
     return;
   }
 
-  const orderNumber = createOrderNumber();
-  const subtotal = getSubtotal();
-  const order = {
-    orderNumber,
-    createdAt: new Date().toISOString(),
-    customer: data,
-    items: validCart,
-    subtotal
-  };
+  confirmButton.disabled = true;
+  confirmButton.textContent = 'Processando pedido...';
 
-  localStorage.setItem('engrenagens-last-order', JSON.stringify(order));
-  localStorage.removeItem('engrenagens-cart');
+  try {
+    const result = await createOrderOnApi(data);
+    localStorage.removeItem('engrenagens-cart');
 
-  content.classList.add('hidden');
-  successState.classList.remove('hidden');
-  document.getElementById('successText').textContent =
-    `Número do pedido: ${orderNumber}. Total demonstrativo: ${brl(subtotal)}. A confirmação foi registrada neste navegador; para operação real, conecte o checkout a um backend e gateway de pagamento.`;
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+    content.classList.add('hidden');
+    successState.classList.remove('hidden');
+
+    const modeText = result.demo
+      ? 'A confirmação foi registrada localmente neste navegador.'
+      : 'O pedido foi registrado no servidor e o estoque foi atualizado.';
+    document.getElementById('successText').textContent =
+      `Número do pedido: ${result.order.orderNumber}. Total: ${brl(result.order.total ?? result.order.subtotal)}. ${modeText}`;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  } catch (error) {
+    formError.textContent = error.message || 'Não foi possível finalizar o pedido.';
+  } finally {
+    confirmButton.disabled = false;
+    confirmButton.textContent = 'Confirmar pedido';
+  }
 });
 
 if (validCart.length) {
