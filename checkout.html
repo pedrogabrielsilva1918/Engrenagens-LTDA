@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Checkout da Engrenagens LTDA.">
+  <meta name="theme-color" content="#111111">
+  <title>Finalizar pedido — Engrenagens LTDA</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="checkout.css">
+</head>
+<body>
+  <div class="topbar"><b>Engrenagens LTDA</b> · finalização segura do pedido · atendimento comercial B2B</div>
+  <header class="header">
+    <div class="container nav">
+      <a class="brand" href="index.html#inicio" style="text-decoration:none;color:inherit"><span class="brandMark">E</span>Engrenagens LTDA</a>
+      <div class="checkoutStep"><span class="step active">1</span> Dados <span class="line"></span><span class="step">2</span> Confirmação</div>
+    </div>
+  </header>
+
+  <main class="checkoutPage">
+    <div class="container">
+      <div class="checkoutHeader">
+        <div>
+          <div class="eyebrow">Finalização do pedido</div>
+          <h1>Revise seu pedido</h1>
+          <p>Preencha os dados de entrega e escolha a forma de pagamento. Esta versão está preparada para futura integração com gateway de pagamento.</p>
+        </div>
+        <a href="index.html#catalogo" class="backLink">← Continuar comprando</a>
+      </div>
+
+      <div id="emptyState" class="emptyState hidden">
+        <h2>Seu pedido está vazio.</h2>
+        <p>Adicione produtos ao carrinho antes de finalizar.</p>
+        <a class="primary" href="index.html#catalogo">Voltar ao catálogo</a>
+      </div>
+
+      <div id="checkoutContent" class="checkoutGrid">
+        <section class="checkoutCard">
+          <div class="cardTitle"><span>01</span><h2>Dados do comprador</h2></div>
+          <div class="formGrid">
+            <div class="field full"><label for="company">Empresa</label><input id="company" required placeholder="Razão social ou nome da empresa"></div>
+            <div class="field"><label for="name">Nome do responsável</label><input id="name" required placeholder="Seu nome"></div>
+            <div class="field"><label for="email">E-mail</label><input id="email" required type="email" placeholder="compras@empresa.com"></div>
+            <div class="field"><label for="phone">Telefone / WhatsApp</label><input id="phone" required placeholder="(27) 99999-9999"></div>
+            <div class="field"><label for="document">CNPJ / CPF</label><input id="document" placeholder="00.000.000/0001-00"></div>
+          </div>
+
+          <div class="cardTitle spaceTop"><span>02</span><h2>Entrega</h2></div>
+          <div class="formGrid">
+            <div class="field"><label for="cep">CEP</label><input id="cep" required inputmode="numeric" placeholder="29000-000"></div>
+            <div class="field"><label for="city">Cidade</label><input id="city" required placeholder="Serra"></div>
+            <div class="field"><label for="state">Estado</label><select id="state" required><option value="">Selecione</option><option>ES</option><option>RJ</option><option>SP</option><option>MG</option><option>BA</option><option>Outro</option></select></div>
+            <div class="field"><label for="address">Endereço</label><input id="address" required placeholder="Rua, avenida, rodovia..."></div>
+            <div class="field"><label for="number">Número</label><input id="number" required placeholder="123"></div>
+            <div class="field"><label for="complement">Complemento</label><input id="complement" placeholder="Galpão, sala, bloco..."></div>
+            <div class="field full"><label for="notes">Observações do pedido</label><textarea id="notes" placeholder="Informações para faturamento, expedição ou contato comercial"></textarea></div>
+          </div>
+
+          <div class="cardTitle spaceTop"><span>03</span><h2>Pagamento</h2></div>
+          <div class="paymentOptions">
+            <label class="paymentOption"><input type="radio" name="payment" value="pix" checked><span><b>Pix</b><small>Pagamento instantâneo</small></span></label>
+            <label class="paymentOption"><input type="radio" name="payment" value="card"><span><b>Cartão</b><small>Crédito / parcelamento</small></span></label>
+            <label class="paymentOption"><input type="radio" name="payment" value="boleto"><span><b>Boleto</b><small>Prazo sujeito a aprovação</small></span></label>
+          </div>
+          <div class="demoNotice">Modo demonstrativo: nenhum pagamento real será processado. O próximo passo é conectar o gateway e o backend de pedidos.</div>
+
+          <button id="confirmOrder" class="confirmBtn">Confirmar pedido</button>
+          <div id="formError" class="formError" role="alert"></div>
+        </section>
+
+        <aside class="checkoutCard summaryCard">
+          <div class="cardTitle"><span>Resumo</span><h2>Seu pedido</h2></div>
+          <div id="orderItems" class="orderItems"></div>
+          <div class="summaryLine"><span>Subtotal</span><b id="subtotal">R$ 0,00</b></div>
+          <div class="summaryLine muted"><span>Frete</span><span>A calcular</span></div>
+          <div class="summaryTotal"><span>Total do pedido</span><strong id="total">R$ 0,00</strong></div>
+          <div class="summaryHint">Os valores de frete, impostos e condições comerciais podem ser calculados pelo backend na próxima integração.</div>
+        </aside>
+      </div>
+
+      <div id="successState" class="successState hidden">
+        <div class="successIcon">✓</div>
+        <div class="eyebrow">Pedido criado</div>
+        <h2 id="successTitle">Pedido enviado com sucesso.</h2>
+        <p id="successText"></p>
+        <a class="primary" href="index.html#catalogo">Voltar ao catálogo</a>
+      </div>
+    </div>
+  </main>
+
+  <footer><div class="container foot"><div><b>Engrenagens LTDA</b><br>Componentes industriais e transmissão mecânica.</div><div>© 2026 Engrenagens LTDA · Loja demonstrativa.</div></div></footer>
+
+  <script src="products.js"></script>
+  <script src="checkout.js"></script>
+</body>
+</html>
