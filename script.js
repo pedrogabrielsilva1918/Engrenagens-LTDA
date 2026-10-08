@@ -1,4 +1,4 @@
-const products = window.PRODUCTS;
+let products = window.PRODUCTS;
 const categories = ['Todos', ...new Set(products.map(p => p.category))];
 let state = { cat: 'Todos', search: '', sort: 'featured', cart: JSON.parse(localStorage.getItem('engrenagens-cart') || '[]') };
 state.cart = state.cart
@@ -7,7 +7,25 @@ state.cart = state.cart
 const brl = v => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const grid = document.getElementById('grid'), pills = document.getElementById('pills'), quoteProduct = document.getElementById('quoteProduct');
 categories.forEach(c => { const b = document.createElement('button'); b.className = 'pill' + (c === 'Todos' ? ' active' : ''); b.textContent = c; b.onclick = () => { state.cat = c; document.querySelectorAll('.pill').forEach(x => x.classList.remove('active')); b.classList.add('active'); render() }; pills.appendChild(b) });
-products.forEach(p => { const o = document.createElement('option'); o.value = p.name; o.textContent = p.name; quoteProduct.appendChild(o) });
+function populateQuoteProducts() { quoteProduct.innerHTML = '<option value="">Produto de interesse</option>'; products.forEach(p => { const o = document.createElement('option'); o.value = p.name; o.textContent = p.name; quoteProduct.appendChild(o) }); }
+populateQuoteProducts();
+
+async function syncProductsFromApi() {
+  const baseUrl = (window.API_BASE_URL || '').replace(/\/$/, '');
+  if (!baseUrl) return;
+  try {
+    const response = await fetch(`${baseUrl}/api/products`, { headers: { Accept: 'application/json' } });
+    if (!response.ok) return;
+    const payload = await response.json();
+    if (!Array.isArray(payload.products)) return;
+    products = payload.products;
+    populateQuoteProducts();
+    render();
+    updateCart();
+  } catch (error) {
+    console.warn('API de produtos indisponível. Usando catálogo local.', error);
+  }
+}
 function filtered() { let a = products.filter(p => (state.cat === 'Todos' || p.category === state.cat) && `${p.name} ${p.category} ${p.sku}`.toLowerCase().includes(state.search.toLowerCase())); if (state.sort === 'priceAsc') a.sort((x, y) => x.price - y.price); if (state.sort === 'priceDesc') a.sort((x, y) => y.price - x.price); if (state.sort === 'rating') a.sort((x, y) => y.rating - x.rating); return a }
 function render() { grid.innerHTML = filtered().map(p => {
     const available = p.stock > 0;
@@ -60,4 +78,4 @@ document.getElementById('checkoutBtn').onclick = () => {
   window.location.href = 'checkout.html';
 };
 document.getElementById('quoteForm').onsubmit = e => { e.preventDefault(); alert('Solicitação de orçamento registrada no modo demonstrativo. Conecte este formulário ao e-mail, CRM ou WhatsApp da empresa.') };
-render(); updateCart();
+render(); updateCart(); syncProductsFromApi();
