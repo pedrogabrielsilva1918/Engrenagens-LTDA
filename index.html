@@ -1,31 +1,188 @@
 <!doctype html>
 <html lang="pt-BR">
+
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="Engrenagens LTDA — loja de engrenagens, correntes, polias, acoplamentos e componentes industriais.">
-<meta name="theme-color" content="#111111">
-<title>Engrenagens LTDA — Componentes industriais</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%23111111'/><text x='50' y='70' text-anchor='middle' font-size='56' font-family='Arial' font-weight='700' fill='%23f3bd33'>E</text></svg>">
-<link rel="stylesheet" href="styles.css">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="description"
+        content="Engrenagens LTDA — loja de engrenagens, correntes, polias, acoplamentos e componentes industriais.">
+    <meta name="theme-color" content="#111111">
+    <title>Engrenagens LTDA — Componentes industriais</title>
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%23111111'/><text x='50' y='70' text-anchor='middle' font-size='56' font-family='Arial' font-weight='700' fill='%23f3bd33'>E</text></svg>">
+    <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
-<div class="topbar"><b>Engrenagens LTDA</b> · componentes industriais · atendimento comercial e pedidos em todo o Brasil</div>
-<header class="header"><div class="container nav"><a class="brand" href="#inicio" style="text-decoration:none;color:inherit"><span class="brandMark">E</span>Engrenagens LTDA</a><nav class="navlinks"><a href="#catalogo">Catálogo</a><a href="#ofertas">Ofertas</a><a href="#orcamento">Orçamento</a><a href="#empresa">Empresa</a></nav><div class="actions"><button class="iconbtn" id="searchFocus" aria-label="Buscar">⌕</button><button class="iconbtn" id="cartBtn" aria-label="Carrinho">🛒<span class="count" id="cartCount">0</span></button></div></div></header>
-<main id="inicio">
-<section class="hero"><div class="container heroGrid"><div class="heroCopy"><div class="eyebrow">Linha industrial</div><h1>Força, precisão e movimento.</h1><p>Engrenagens e componentes para manutenção, automação e transmissão mecânica. Encontre a peça certa e solicite seu pedido em poucos cliques.</p><div class="heroBtns"><a class="primary" href="#catalogo">Ver catálogo</a><a class="secondary" href="#orcamento">Solicitar orçamento</a></div></div><div class="heroVisual"><div class="gear"></div><div class="heroSpec"><span>Peças para transmissão mecânica</span><b>Qualidade para sua operação.</b></div></div></div></section>
-<div class="container usp"><div class="uspCard">⚙️<b>Catálogo objetivo</b><span>Peças e componentes para aplicações industriais.</span></div><div class="uspCard">✓<b>Compra simples</b><span>Selecione produtos ou peça uma cotação.</span></div><div class="uspCard">↗<b>Atendimento comercial</b><span>Fluxo preparado para vendas B2B.</span></div><div class="uspCard">↺<b>Pedido sob medida</b><span>Informe medidas e aplicação no orçamento.</span></div></div>
-<section class="section" id="catalogo"><div class="container"><div class="sectionHead"><div><h2>Catálogo de produtos</h2><div class="sectionSub">Itens demonstrativos prontos para receber SKUs e preços reais.</div></div><div class="pills" id="pills"></div></div><div class="toolbar"><input id="search" class="search" placeholder="Buscar por nome, tipo ou SKU..." aria-label="Buscar produtos"><select id="sort" class="select" aria-label="Ordenar produtos"><option value="featured">Mais relevantes</option><option value="priceAsc">Menor preço</option><option value="priceDesc">Maior preço</option><option value="rating">Melhor avaliação</option></select></div><div class="grid" id="grid"></div></div></section>
-<section class="container" id="ofertas"><div class="banner"><div><h3>Condição especial para primeira compra</h3><p>Use o código de demonstração no seu fluxo comercial e substitua pelo cupom real quando publicar a operação.</p></div><div class="code">ENGRE10</div></div></section>
-<section class="container" id="orcamento"><div class="quote"><div><div class="eyebrow">Vendas B2B</div><h3>Não encontrou a especificação? Peça uma cotação.</h3><p>Envie a aplicação, medidas e quantidade. Este formulário é demonstrativo e está pronto para ser conectado a e-mail, CRM ou WhatsApp.</p></div><form id="quoteForm"><input required name="nome" placeholder="Nome / empresa"><input required type="email" name="email" placeholder="E-mail comercial"><input name="telefone" placeholder="Telefone / WhatsApp"><select name="produto" id="quoteProduct"><option value="">Produto de interesse</option></select><textarea name="mensagem" placeholder="Medidas, módulo, dentes, eixo, quantidade ou aplicação"></textarea><button>Enviar solicitação</button><div class="notice">Nenhum dado é enviado para terceiros nesta versão demonstrativa.</div></form></div></section>
-<section class="section" id="empresa"><div class="container"><div class="sectionHead"><div><h2>Pronta para sua operação</h2><div class="sectionSub">Estrutura leve para catálogo, venda direta e orçamento técnico.</div></div></div><div class="usp"><div class="uspCard"><b>Produtos</b><span>Cadastro centralizado com preço, estoque e descrição.</span></div><div class="uspCard"><b>Pedidos</b><span>Carrinho, resumo do pedido e etapa de checkout.</span></div><div class="uspCard"><b>Orçamentos</b><span>Lead técnico para pedidos que exigem especificação.</span></div><div class="uspCard"><b>Integrações</b><span>Backend, pagamento, estoque, CRM e WhatsApp podem ser conectados.</span></div></div></div></section>
-</main>
-<footer><div class="container foot"><div><b>Engrenagens LTDA</b><br>Componentes industriais e transmissão mecânica.</div><div>© 2026 Engrenagens LTDA · Loja demonstrativa.</div></div></footer>
-<div class="overlay" id="overlay"></div>
-<aside class="drawer" id="drawer"><div class="drawerHead"><h3>Seu pedido</h3><button class="iconbtn" id="closeCart">×</button></div><div class="cartBody" id="cartBody"></div><div class="checkout"><div class="summary"><span>Total</span><span id="cartTotal">R$ 0,00</span></div><button id="checkoutBtn">Continuar para pagamento</button></div></aside>
-<div class="productModal" id="productModal"><div class="productModalCard"><button class="productModalClose iconbtn" id="closeProductModal" aria-label="Fechar">×</button><div class="productModalGrid"><div class="productModalVisual"><div class="detailArt" id="detailArt"></div></div><div class="productModalContent"><div class="category" id="detailCategory"></div><h3 id="detailName"></h3><div class="sku" id="detailSku"></div><div class="rating" id="detailRating"></div><p id="detailDescription"></p><div class="detailSpecs" id="detailSpecs"></div><div class="price detailPrice"><strong id="detailPrice"></strong><span class="old" id="detailOld"></span></div><div class="detailActions"><button class="add" id="detailAdd">Adicionar ao pedido</button><button class="secondaryLight" id="detailQuote">Solicitar orçamento</button></div></div></div></div></div>
-<div class="modal" id="modal"><div class="modalCard"><div style="display:flex;justify-content:space-between;gap:12px;align-items:start"><div><h3>Finalizar pedido</h3><p>Checkout demonstrativo. Conecte seu gateway de pagamento para ativar cobranças reais.</p></div><button class="iconbtn" id="closeModal">×</button></div><form id="checkoutForm"><div class="field"><label>Nome completo</label><input required placeholder="Seu nome"></div><div class="field"><label>E-mail</label><input required type="email" placeholder="voce@empresa.com"></div><div class="field"><label>Forma de pagamento</label><select><option>Cartão de crédito</option><option>Pix</option><option>Boleto</option></select></div><div class="modalActions"><button type="button" class="back" id="cancelCheckout">Voltar</button><button class="ok">Confirmar pedido</button></div></form></div></div>
-<script src="products.js"></script>
-<script src="script.js"></script>
+    <div class="topbar"><b>Engrenagens LTDA</b> · componentes industriais · atendimento comercial e pedidos em todo o
+        Brasil</div>
+    <header class="header">
+        <div class="container nav"><a class="brand" href="#inicio" style="text-decoration:none;color:inherit"><span
+                    class="brandMark">E</span>Engrenagens LTDA</a>
+            <nav class="navlinks"><a href="#catalogo">Catálogo</a><a href="#ofertas">Ofertas</a><a
+                    href="#orcamento">Orçamento</a><a href="#empresa">Empresa</a></nav>
+            <div class="actions"><button class="iconbtn" id="searchFocus" aria-label="Buscar">⌕</button><button
+                    class="iconbtn" id="cartBtn" aria-label="Carrinho">🛒<span class="count"
+                        id="cartCount">0</span></button></div>
+        </div>
+    </header>
+    <main id="inicio">
+        <section class="hero">
+            <div class="container heroGrid">
+                <div class="heroCopy">
+                    <div class="eyebrow">Linha industrial</div>
+                    <h1>Força, precisão e movimento.</h1>
+                    <p>Engrenagens e componentes para manutenção, automação e transmissão mecânica. Encontre a peça
+                        certa e solicite seu pedido em poucos cliques.</p>
+                    <div class="heroBtns"><a class="primary" href="#catalogo">Ver catálogo</a><a class="secondary"
+                            href="#orcamento">Solicitar orçamento</a></div>
+                </div>
+                <div class="heroVisual">
+                    <div class="gear"></div>
+                    <div class="heroSpec"><span>Peças para transmissão mecânica</span><b>Qualidade para sua
+                            operação.</b></div>
+                </div>
+            </div>
+        </section>
+        <div class="container usp">
+            <div class="uspCard">⚙️<b>Catálogo objetivo</b><span>Peças e componentes para aplicações industriais.</span>
+            </div>
+            <div class="uspCard">✓<b>Compra simples</b><span>Selecione produtos ou peça uma cotação.</span></div>
+            <div class="uspCard">↗<b>Atendimento comercial</b><span>Fluxo preparado para vendas B2B.</span></div>
+            <div class="uspCard">↺<b>Pedido sob medida</b><span>Informe medidas e aplicação no orçamento.</span></div>
+        </div>
+        <section class="section" id="catalogo">
+            <div class="container">
+                <div class="sectionHead">
+                    <div>
+                        <h2>Catálogo de produtos</h2>
+                        <div class="sectionSub">Itens demonstrativos prontos para receber SKUs e preços reais.</div>
+                    </div>
+                    <div class="pills" id="pills"></div>
+                </div>
+                <div class="toolbar"><input id="search" class="search" placeholder="Buscar por nome, tipo ou SKU..."
+                        aria-label="Buscar produtos"><select id="sort" class="select" aria-label="Ordenar produtos">
+                        <option value="featured">Mais relevantes</option>
+                        <option value="priceAsc">Menor preço</option>
+                        <option value="priceDesc">Maior preço</option>
+                        <option value="rating">Melhor avaliação</option>
+                    </select></div>
+                <div class="grid" id="grid"></div>
+            </div>
+        </section>
+        <section class="container" id="ofertas">
+            <div class="banner">
+                <div>
+                    <h3>Condição especial para primeira compra</h3>
+                    <p>Use o código de demonstração no seu fluxo comercial e substitua pelo cupom real quando publicar a
+                        operação.</p>
+                </div>
+                <div class="code">ENGRE10</div>
+            </div>
+        </section>
+        <section class="container" id="orcamento">
+            <div class="quote">
+                <div>
+                    <div class="eyebrow">Vendas B2B</div>
+                    <h3>Não encontrou a especificação? Peça uma cotação.</h3>
+                    <p>Envie a aplicação, medidas e quantidade. Este formulário é demonstrativo e está pronto para ser
+                        conectado a e-mail, CRM ou WhatsApp.</p>
+                </div>
+                <form id="quoteForm"><input required name="nome" placeholder="Nome / empresa"><input required
+                        type="email" name="email" placeholder="E-mail comercial"><input name="telefone"
+                        placeholder="Telefone / WhatsApp"><select name="produto" id="quoteProduct">
+                        <option value="">Produto de interesse</option>
+                    </select><textarea name="mensagem"
+                        placeholder="Medidas, módulo, dentes, eixo, quantidade ou aplicação"></textarea><button>Enviar
+                        solicitação</button>
+                    <div class="notice">Nenhum dado é enviado para terceiros nesta versão demonstrativa.</div>
+                </form>
+            </div>
+        </section>
+        <section class="section" id="empresa">
+            <div class="container">
+                <div class="sectionHead">
+                    <div>
+                        <h2>Pronta para sua operação</h2>
+                        <div class="sectionSub">Estrutura leve para catálogo, venda direta e orçamento técnico.</div>
+                    </div>
+                </div>
+                <div class="usp">
+                    <div class="uspCard"><b>Produtos</b><span>Cadastro centralizado com preço, estoque e
+                            descrição.</span></div>
+                    <div class="uspCard"><b>Pedidos</b><span>Carrinho, resumo do pedido e etapa de checkout.</span>
+                    </div>
+                    <div class="uspCard"><b>Orçamentos</b><span>Lead técnico para pedidos que exigem
+                            especificação.</span></div>
+                    <div class="uspCard"><b>Integrações</b><span>Backend, pagamento, estoque, CRM e WhatsApp podem ser
+                            conectados.</span></div>
+                </div>
+            </div>
+        </section>
+    </main>
+    <footer>
+        <div class="container foot">
+            <div><b>Engrenagens LTDA</b><br>Componentes industriais e transmissão mecânica.</div>
+            <div>© 2026 Engrenagens LTDA · Loja demonstrativa.</div>
+        </div>
+    </footer>
+    <div class="overlay" id="overlay"></div>
+    <aside class="drawer" id="drawer">
+        <div class="drawerHead">
+            <h3>Seu pedido</h3><button class="iconbtn" id="closeCart">×</button>
+        </div>
+        <div class="cartBody" id="cartBody"></div>
+        <div class="checkout">
+            <div class="summary"><span>Total</span><span id="cartTotal">R$ 0,00</span></div><button
+                id="checkoutBtn">Continuar para pagamento</button>
+        </div>
+    </aside>
+    <div class="productModal" id="productModal">
+        <div class="productModalCard"><button class="productModalClose iconbtn" id="closeProductModal"
+                aria-label="Fechar">×</button>
+            <div class="productModalGrid">
+                <div class="productModalVisual">
+                    <div class="detailArt" id="detailArt"></div>
+                </div>
+                <div class="productModalContent">
+                    <div class="category" id="detailCategory"></div>
+                    <h3 id="detailName"></h3>
+                    <div class="sku" id="detailSku"></div>
+                    <div class="rating" id="detailRating"></div>
+                    <p id="detailDescription"></p>
+                    <div class="detailSpecs" id="detailSpecs"></div>
+                    <div class="price detailPrice"><strong id="detailPrice"></strong><span class="old"
+                            id="detailOld"></span></div>
+                    <div class="detailActions"><button class="add" id="detailAdd">Adicionar ao pedido</button><button
+                            class="secondaryLight" id="detailQuote">Solicitar orçamento</button></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal" id="modal">
+        <div class="modalCard">
+            <div style="display:flex;justify-content:space-between;gap:12px;align-items:start">
+                <div>
+                    <h3>Finalizar pedido</h3>
+                    <p>Checkout demonstrativo. Conecte seu gateway de pagamento para ativar cobranças reais.</p>
+                </div><button class="iconbtn" id="closeModal">×</button>
+            </div>
+            <form id="checkoutForm">
+                <div class="field"><label>Nome completo</label><input required placeholder="Seu nome"></div>
+                <div class="field"><label>E-mail</label><input required type="email" placeholder="voce@empresa.com">
+                </div>
+                <div class="field"><label>Forma de pagamento</label><select>
+                        <option>Cartão de crédito</option>
+                        <option>Pix</option>
+                        <option>Boleto</option>
+                    </select></div>
+                <div class="modalActions"><button type="button" class="back" id="cancelCheckout">Voltar</button><button
+                        class="ok">Confirmar pedido</button></div>
+            </form>
+        </div>
+    </div>
+    <script src="products.js"></script>
+    <script src="script.js"></script>
 </body>
+
 </html>
