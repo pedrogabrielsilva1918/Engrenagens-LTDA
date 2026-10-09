@@ -39,6 +39,14 @@ try {
   }
   console.log('OK  /api/admin/products exige autenticação administrativa');
 
+  const adminProductsResponse = await fetch(`${baseUrl}/api/admin/products`, {
+    headers: { Accept: 'application/json' }
+  });
+  if (![401, 503].includes(adminProductsResponse.status)) {
+    throw new Error(`GET /api/admin/products: esperado endpoint protegido (HTTP 401 ou 503), recebido HTTP ${adminProductsResponse.status}`);
+  }
+  console.log('OK  listagem administrativa de produtos protegida');
+
   await check('/api/payments/status', body => {
     const payment = JSON.parse(body);
     return ['demo', 'incomplete', 'mercadopago'].includes(payment.mode) &&
