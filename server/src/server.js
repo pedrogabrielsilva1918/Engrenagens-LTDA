@@ -289,6 +289,73 @@ app.patch('/api/admin/orders/:orderNumber', requireAdmin, serializeMutations, as
   }
 });
 
+app.post('/api/admin/products', requireAdmin, serializeMutations, async (req, res, next) => {
+  try {
+    const body = req.body || {};
+    const name = String(body.name || '').trim();
+    const category = String(body.category || '').trim();
+    const sku = String(body.sku || '').trim().toUpperCase();
+    const description = String(body.description || '').trim();
+    const badge = String(body.badge || '').trim();
+    const price = Number(body.price);
+    const oldValue = body.old === '' || body.old === null || body.old === undefined
+      ? null
+      : Number(body.old);
+    const stock = Number(body.stock);
+
+    if (!name || name.length > 120) {
+      return res.status(400).json({ error: 'Informe o nome do produto (até 120 caracteres).' });
+    }
+    if (!category || category.length > 80) {
+      return res.status(400).json({ error: 'Informe a categoria (até 80 caracteres).' });
+    }
+    if (!/^[A-Z0-9][A-Z0-9._/-]{1,59}$/.test(sku)) {
+      return res.status(400).json({ error: 'Informe um SKU com 2 a 60 caracteres: letras, números, ponto, hífen, barra ou sublinhado.' });
+    }
+    if (!description || description.length > 700) {
+      return res.status(400).json({ error: 'Informe a descrição do produto (até 700 caracteres).' });
+    }
+    if (!Number.isFinite(price) || price < 0) {
+      return res.status(400).json({ error: 'O preço deve ser um número igual ou maior que zero.' });
+    }
+    if (oldValue !== null && (!Number.isFinite(oldValue) || oldValue < 0)) {
+      return res.status(400).json({ error: 'O preço anterior deve ser um número não negativo ou ficar em branco.' });
+    }
+    if (!Number.isInteger(stock) || stock < 0) {
+      return res.status(400).json({ error: 'O estoque deve ser um inteiro igual ou maior que zero.' });
+    }
+    if (badge.length > 40) {
+      return res.status(400).json({ error: 'O selo promocional deve ter no máximo 40 caracteres.' });
+    }
+
+    const products = await readJson(productsFile);
+    if (products.some(product => String(product.sku || '').trim().toUpperCase() === sku)) {
+      return res.status(409).json({ error: 'Este SKU já está cadastrado. Informe um SKU diferente.' });
+    }
+
+    const nextId = products.reduce((max, product) => Math.max(max, Number(product.id) || 0), 0) + 1;
+    const product = {
+      id: nextId,
+      name,
+      category,
+      price: Number(price.toFixed(2)),
+      old: oldValue === null ? null : Number(oldValue.toFixed(2)),
+      rating: 5,
+      reviews: 0,
+      sku,
+      badge: badge || null,
+      stock,
+      description,
+      specs: { 'Categoria': category, 'SKU': sku }
+    };
+    products.push(product);
+    await writeJson(productsFile, products);
+    res.status(201).json({ product });
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.patch('/api/admin/products/:id', requireAdmin, serializeMutations, async (req, res, next) => {
   try {
     const productId = Number(req.params.id);
