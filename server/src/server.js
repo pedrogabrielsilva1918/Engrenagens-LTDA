@@ -229,7 +229,7 @@ app.get('/api/orders/:orderNumber', requireAdmin, async (req, res, next) => {
 
 app.post('/api/orders', serializeMutations, async (req, res, next) => {
   try {
-    const { customer, items, payment } = req.body || {};
+    const { customer, items, payment = 'pix' } = req.body || {};
     const customerError = validateCustomer(customer);
     if (customerError) return res.status(400).json({ error: customerError });
 
