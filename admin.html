@@ -82,6 +82,33 @@
       </div>
       <div id="orderDetails" class="orderDetails hidden"></div>
     </section>
+    <section class="adminSection chatAdminSection">
+      <div class="adminSectionHead chatAdminHeading">
+        <div><h2>Atendimento por chat</h2><p>Responda às dúvidas enviadas pela loja. As conversas são atualizadas automaticamente.</p><small id="chatInboxCount" class="ordersCount">Conecte-se para carregar as conversas.</small></div>
+        <button id="refreshChatsBtn" class="outlineBtn" type="button" disabled>Atualizar conversas</button>
+      </div>
+      <div class="chatAdminLayout">
+        <aside class="chatInbox" aria-label="Lista de conversas">
+          <div class="chatInboxHeader"><strong>Conversas</strong><span id="chatOpenCount" class="statusPill pending">0 abertas</span></div>
+          <div id="chatSessionsList" class="chatSessionsList"><p class="chatEmpty">Conecte-se à API para ver as mensagens.</p></div>
+        </aside>
+        <section class="chatAdminThread" aria-label="Conversa selecionada">
+          <div id="chatThreadEmpty" class="chatThreadEmpty"><span>✉</span><strong>Selecione uma conversa</strong><p>Escolha uma mensagem da lista para responder ao cliente.</p></div>
+          <div id="chatThreadContent" class="chatThreadContent" hidden>
+            <header class="chatThreadHeader">
+              <div><strong id="chatThreadName">Cliente</strong><small id="chatThreadEmail"></small><small id="chatThreadMeta"></small></div>
+              <button id="chatStatusToggleBtn" class="outlineBtn" type="button">Encerrar conversa</button>
+            </header>
+            <div id="chatThreadMessages" class="chatThreadMessages" role="log" aria-live="polite" aria-label="Mensagens da conversa"></div>
+            <form id="chatReplyForm" class="chatReplyForm">
+              <label class="chatReplyLabel" for="chatReplyInput">Responder ao cliente</label>
+              <div class="chatReplyRow"><textarea id="chatReplyInput" rows="2" maxlength="1500" required placeholder="Digite sua resposta..."></textarea><button id="chatReplyBtn" class="darkBtn" type="submit">Responder</button></div>
+              <small id="chatReplyStatus" role="status"></small>
+            </form>
+          </div>
+        </section>
+      </div>
+    </section>
     <div id="adminToast" class="adminToast" role="status"></div>
     <p class="adminDisclaimer">Protótipo administrativo. Use HTTPS, configure uma chave forte no ambiente do servidor e migre de arquivos JSON para banco de dados antes de operar em produção.</p>
   </main>
