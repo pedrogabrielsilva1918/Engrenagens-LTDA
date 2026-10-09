@@ -25,7 +25,30 @@ async function readJson(file) {
 }
 
 async function writeJson(file, value) {
-  await fs.writeFile(file, JSON.stringify(value, null, 2) + '\n', 'utf8');
+  const temporaryFile = `${file}.${process.pid}.${crypto.randomUUID()}.tmp`;
+  await fs.writeFile(temporaryFile, JSON.stringify(value, null, 2) + '\n', 'utf8');
+  await fs.rename(temporaryFile, file);
+}
+
+let mutationTail = Promise.resolve();
+
+function serializeMutations(_req, res, next) {
+  const previous = mutationTail;
+  let releaseCurrent;
+  const current = new Promise(resolve => { releaseCurrent = resolve; });
+  mutationTail = previous.then(() => current);
+
+  previous.then(() => {
+    let released = false;
+    const release = () => {
+      if (released) return;
+      released = true;
+      releaseCurrent();
+    };
+    res.once('finish', release);
+    res.once('close', release);
+    next();
+  }).catch(next);
 }
 
 function requireAdmin(req, res, next) {
@@ -85,7 +108,7 @@ app.get('/api/admin/orders', requireAdmin, async (_req, res, next) => {
   }
 });
 
-app.patch('/api/admin/orders/:orderNumber', requireAdmin, async (req, res, next) => {
+app.patch('/api/admin/orders/:orderNumber', requireAdmin, serializeMutations, async (req, res, next) => {
   try {
     const nextStatus = String(req.body?.status || '');
     const allowedStatuses = ['pending_payment', 'paid', 'processing', 'shipped', 'completed', 'cancelled'];
@@ -132,7 +155,7 @@ app.patch('/api/admin/orders/:orderNumber', requireAdmin, async (req, res, next)
   }
 });
 
-app.patch('/api/admin/products/:id', requireAdmin, async (req, res, next) => {
+app.patch('/api/admin/products/:id', requireAdmin, serializeMutations, async (req, res, next) => {
   try {
     const productId = Number(req.params.id);
     if (!Number.isInteger(productId)) {
@@ -203,7 +226,7 @@ app.get('/api/orders/:orderNumber', requireAdmin, async (req, res, next) => {
   }
 });
 
-app.post('/api/orders', async (req, res, next) => {
+app.post('/api/orders', serializeMutations, async (req, res, next) => {
   try {
     const { customer, items, payment } = req.body || {};
     const customerError = validateCustomer(customer);
@@ -211,6 +234,10 @@ app.post('/api/orders', async (req, res, next) => {
 
     if (!Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ error: 'O pedido precisa ter pelo menos um item.' });
+    }
+
+    if (!['pix', 'card', 'boleto'].includes(payment)) {
+      return res.status(400).json({ error: 'Forma de pagamento inválida.' });
     }
 
     const products = await readJson(productsFile);
@@ -225,8 +252,15 @@ app.post('/api/orders', async (req, res, next) => {
       return res.status(400).json({ error: 'Itens do pedido inválidos.' });
     }
 
-    const normalizedItems = [];
+    // Junta linhas repetidas do mesmo produto para validar o total solicitado.
+    const quantitiesByProduct = new Map();
     for (const item of requested) {
+      quantitiesByProduct.set(item.id, (quantitiesByProduct.get(item.id) || 0) + item.qty);
+    }
+    const normalizedRequest = [...quantitiesByProduct.entries()].map(([id, qty]) => ({ id, qty }));
+
+    const normalizedItems = [];
+    for (const item of normalizedRequest) {
       const product = products.find(p => p.id === item.id);
       if (!product) return res.status(400).json({ error: `Produto ${item.id} não encontrado.` });
       if (product.stock < item.qty) {
