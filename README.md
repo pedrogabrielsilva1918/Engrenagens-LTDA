@@ -27,6 +27,14 @@ npm run dev
 
 4. Abra no navegador: **http://localhost:3000**. O servidor entrega a loja, o checkout, os assets públicos e a API pela mesma porta. Não é necessário abrir `index.html` por `file://` nem executar outro servidor estático.
 
+5. Em um segundo terminal, rode o diagnóstico:
+
+```bash
+npm run check:api
+```
+
+O comando verifica saúde da API, catálogo, página inicial, checkout e painel administrativo, além de confirmar que arquivos JSON internos não estão expostos.
+
 No GitHub Codespaces, abra a porta 3000 na aba **Ports** e use o endereço encaminhado pelo Codespaces. A configuração do frontend detecta automaticamente a porta 3000 quando a página está em um endereço `*.app.github.dev`.
 
 ## Páginas
