@@ -47,3 +47,12 @@
 .productCreateActions .darkBtn:disabled{opacity:.45;cursor:not-allowed}
 @media(max-width:900px){.productCreateForm{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){.newProductCard{padding:14px}.productCreateForm{grid-template-columns:1fr}.productCreateForm .descriptionField,.productCreateActions{grid-column:auto}.productCreateActions .darkBtn{width:100%}}
+
+.productActions{display:flex;align-items:center;gap:7px;flex-wrap:wrap;min-width:170px}
+.toggleProductBtn{padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--ink);font-size:11px;font-weight:900;white-space:nowrap}
+.toggleProductBtn:hover{border-color:#aaa}
+.toggleProductBtn:disabled{opacity:.55;cursor:wait}
+.statusPill.productActive{background:#e7f4ed;color:var(--success)}
+.statusPill.productInactive{background:#f3e8e6;color:var(--danger)}
+.inactiveProductRow td{background:#fbfaf8}
+.inactiveProductRow .productName{color:#777}
