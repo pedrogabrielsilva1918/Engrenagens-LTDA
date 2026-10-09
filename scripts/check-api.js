@@ -72,7 +72,9 @@ try {
     body.includes('admin.js') &&
     body.includes('id="orderSearch"') &&
     body.includes('id="orderFilter"') &&
-    body.includes('id="exportOrdersBtn"')
+    body.includes('id="exportOrdersBtn"') &&
+    body.includes('id="chatInboxFilter"') &&
+    body.includes('id="chatSessionsList"')
   );
 
   const privateData = await fetch(`${baseUrl}/server/src/data/orders.json`);
