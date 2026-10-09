@@ -29,6 +29,12 @@ try {
       );
   });
 
+  await check('/api/payments/status', body => {
+    const payment = JSON.parse(body);
+    return ['demo', 'incomplete', 'mercadopago'].includes(payment.mode) &&
+      typeof payment.configured === 'boolean';
+  });
+
   await check('/', body => body.toLowerCase().includes('<!doctype html') && body.includes('Engrenagens LTDA'));
   await check('/checkout.html', body => body.includes('checkout.js'));
   await check('/admin.html', body => body.includes('admin.js'));
