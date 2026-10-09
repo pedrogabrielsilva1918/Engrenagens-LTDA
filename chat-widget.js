@@ -17,7 +17,7 @@
     '<label>Seu nome<input id="engChatName" name="name" maxlength="100" autocomplete="name" required placeholder="Nome completo"></label>' +
     '<label>E-mail<input id="engChatEmail" name="email" type="email" maxlength="200" autocomplete="email" required placeholder="voce@empresa.com"></label>' +
     '<label>Mensagem<textarea id="engChatFirstMessage" name="message" maxlength="1500" required rows="3" placeholder="Escreva sua dúvida..."></textarea></label>' +
-    '<button id="engChatStartButton" class="engChatPrimary" type="submit">Iniciar conversa</button><p id="engChatStartError" class="engChatError" role="alert"></p></form>' +
+    '<button id="engChatStartButton" class="engChatPrimary" type="submit">Iniciar conversa</button><p class="engChatPrivacyNote">Usaremos seu nome e e-mail para responder à mensagem.</p><p id="engChatStartError" class="engChatError" role="alert"></p></form>' +
     '<div id="engChatConversation" class="engChatConversation" hidden><div id="engChatMessages" class="engChatMessages" role="log" aria-live="polite" aria-label="Mensagens da conversa"></div>' +
     '<p id="engChatClosedNotice" class="engChatClosedNotice" hidden>Esta conversa foi encerrada pelo atendimento.</p>' +
     '<form id="engChatReplyForm" class="engChatReplyForm"><label class="engChatSrOnly" for="engChatReply">Sua mensagem</label><textarea id="engChatReply" maxlength="1500" rows="2" required placeholder="Digite uma mensagem..."></textarea><button id="engChatSendButton" type="submit" aria-label="Enviar mensagem">Enviar</button></form>' +
