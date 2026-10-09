@@ -43,6 +43,20 @@
 
     <section class="adminSection">
       <div class="adminSectionHead"><div><h2>Produtos e estoque</h2><p>Altere preço, preço anterior e quantidade disponível. As mudanças são salvas na API.</p></div><input id="productFilter" class="filterInput" placeholder="Buscar produto ou SKU"></div>
+      <div class="newProductCard">
+        <div class="newProductHeading"><div><h3>Cadastrar novo produto</h3><p>O produto aparecerá no catálogo após salvar. SKU deve ser único.</p></div></div>
+        <form id="productCreateForm" class="productCreateForm">
+          <div class="adminField"><label for="newProductName">Nome do produto</label><input id="newProductName" name="name" maxlength="120" required placeholder="Ex.: Engrenagem cônica"></div>
+          <div class="adminField"><label for="newProductCategory">Categoria</label><input id="newProductCategory" name="category" maxlength="80" required placeholder="Ex.: Engrenagens"></div>
+          <div class="adminField"><label for="newProductSku">SKU</label><input id="newProductSku" name="sku" maxlength="60" required placeholder="Ex.: ENG-CN-01"></div>
+          <div class="adminField"><label for="newProductPrice">Preço (R$)</label><input id="newProductPrice" name="price" type="number" min="0" step="0.01" required placeholder="0,00"></div>
+          <div class="adminField"><label for="newProductOldPrice">Preço anterior (R$)</label><input id="newProductOldPrice" name="old" type="number" min="0" step="0.01" placeholder="Opcional"></div>
+          <div class="adminField"><label for="newProductStock">Estoque inicial</label><input id="newProductStock" name="stock" type="number" min="0" step="1" required value="0"></div>
+          <div class="adminField"><label for="newProductBadge">Selo promocional</label><input id="newProductBadge" name="badge" maxlength="40" placeholder="Ex.: Novo (opcional)"></div>
+          <div class="adminField descriptionField"><label for="newProductDescription">Descrição</label><textarea id="newProductDescription" name="description" maxlength="700" rows="3" required placeholder="Descreva a aplicação e as características do componente."></textarea></div>
+          <div class="productCreateActions"><button id="createProductBtn" class="darkBtn" type="submit" disabled>Cadastrar produto</button></div>
+        </form>
+      </div>
       <div class="tableWrap">
         <table class="adminTable">
           <thead><tr><th>Produto</th><th>Preço (R$)</th><th>Preço anterior (R$)</th><th>Estoque</th><th>Ação</th></tr></thead>
