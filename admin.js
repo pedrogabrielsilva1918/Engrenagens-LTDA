@@ -151,7 +151,7 @@ function getFilteredOrders() {
 function renderOrders() {
   const filtered = getFilteredOrders();
   byId('ordersCount').textContent = orders.length
-    ? \`\${filtered.length} de \${orders.length} pedido(s)\`
+    ? `${filtered.length} de ${orders.length} pedido(s)`
     : 'Nenhum pedido registrado no servidor.';
   byId('exportOrdersBtn').disabled =
     byId('connectionStatus').textContent !== 'Conectado' || filtered.length === 0;
@@ -175,20 +175,20 @@ function renderOrders() {
     const nextStatuses = transitions[status] || [];
     const choices = [status, ...nextStatuses];
     const options = choices.map(value =>
-      \`<option value="\${escapeHtml(value)}" \${value === status ? 'selected' : ''}>\${escapeHtml(statusLabel(value))}</option>\`
+      `<option value="${escapeHtml(value)}" ${value === status ? 'selected' : ''}>${escapeHtml(statusLabel(value))}</option>`
     ).join('');
-    return \`<tr>
-      <td><button class="orderLink" data-show-order="\${escapeHtml(order.orderNumber)}">\${escapeHtml(order.orderNumber)}</button></td>
-      <td>\${escapeHtml(formatDate(order.createdAt))}</td>
-      <td><div>\${escapeHtml(order.customer?.company || order.customer?.name || '—')}</div><small class="orderCustomerName">\${escapeHtml(order.customer?.name || '')}</small></td>
-      <td>\${escapeHtml(String(order.payment || '—').toUpperCase())}</td>
-      <td><span class="statusPill \${status === 'pending_payment' ? 'pending' : ''}">\${escapeHtml(statusLabel(status))}</span></td>
-      <td><b>\${brl(order.total ?? order.subtotal)}</b></td>
+    return `<tr>
+      <td><button class="orderLink" data-show-order="${escapeHtml(order.orderNumber)}">${escapeHtml(order.orderNumber)}</button></td>
+      <td>${escapeHtml(formatDate(order.createdAt))}</td>
+      <td><div>${escapeHtml(order.customer?.company || order.customer?.name || '—')}</div><small class="orderCustomerName">${escapeHtml(order.customer?.name || '')}</small></td>
+      <td>${escapeHtml(String(order.payment || '—').toUpperCase())}</td>
+      <td><span class="statusPill ${status === 'pending_payment' ? 'pending' : ''}">${escapeHtml(statusLabel(status))}</span></td>
+      <td><b>${brl(order.total ?? order.subtotal)}</b></td>
       <td><div class="orderStatusActions">
-        <select class="statusSelect" aria-label="Novo status do pedido \${escapeHtml(order.orderNumber)}" data-status-for="\${escapeHtml(order.orderNumber)}" \${nextStatuses.length ? '' : 'disabled'}>\${options}</select>
-        <button class="saveStatusBtn" data-update-order="\${escapeHtml(order.orderNumber)}" \${nextStatuses.length ? '' : 'disabled'}>Salvar</button>
+        <select class="statusSelect" aria-label="Novo status do pedido ${escapeHtml(order.orderNumber)}" data-status-for="${escapeHtml(order.orderNumber)}" ${nextStatuses.length ? '' : 'disabled'}>${options}</select>
+        <button class="saveStatusBtn" data-update-order="${escapeHtml(order.orderNumber)}" ${nextStatuses.length ? '' : 'disabled'}>Salvar</button>
       </div></td>
-    </tr>\`;
+    </tr>`;
   }).join('');
 }
 
@@ -215,7 +215,7 @@ function exportOrdersCsv() {
   const rows = filtered.map(order => {
     const customer = order.customer || {};
     const items = (order.items || []).map(item =>
-      \`\${item.name || 'Produto'} (SKU \${item.sku || '—'}) x \${Number(item.qty) || 0}\`
+      `${item.name || 'Produto'} (SKU ${item.sku || '—'}) x ${Number(item.qty) || 0}`
     ).join(' | ');
     return [
       order.orderNumber,
@@ -244,12 +244,12 @@ function exportOrdersCsv() {
   const link = document.createElement('a');
   const today = new Date().toISOString().slice(0, 10);
   link.href = url;
-  link.download = \`engrenagens-pedidos-\${today}.csv\`;
+  link.download = `engrenagens-pedidos-${today}.csv`;
   document.body.appendChild(link);
   link.click();
   link.remove();
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-  showToast(\`\${filtered.length} pedido(s) exportado(s) para CSV.\`);
+  showToast(`${filtered.length} pedido(s) exportado(s) para CSV.`);
 }
 
 function showOrderDetails(orderNumber) {
