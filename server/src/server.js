@@ -13,6 +13,7 @@ const ordersFile = path.join(dataDir, 'orders.json');
 const app = express();
 const port = Number(process.env.PORT || 3000);
 const corsOrigin = process.env.CORS_ORIGIN || '*';
+const adminApiKey = process.env.ADMIN_API_KEY || '';
 
 app.use(cors({ origin: corsOrigin }));
 app.use(express.json({ limit: '100kb' }));
@@ -24,6 +25,21 @@ async function readJson(file) {
 
 async function writeJson(file, value) {
   await fs.writeFile(file, JSON.stringify(value, null, 2) + '\n', 'utf8');
+}
+
+function requireAdmin(req, res, next) {
+  if (!adminApiKey) {
+    return res.status(503).json({ error: 'Painel administrativo desativado. Configure ADMIN_API_KEY no ambiente do servidor.' });
+  }
+
+  const receivedKey = req.get('x-admin-key') || '';
+  const receivedBuffer = Buffer.from(receivedKey);
+  const expectedBuffer = Buffer.from(adminApiKey);
+  const valid = receivedBuffer.length === expectedBuffer.length &&
+    crypto.timingSafeEqual(receivedBuffer, expectedBuffer);
+
+  if (!valid) return res.status(401).json({ error: 'Chave administrativa inválida.' });
+  next();
 }
 
 function createOrderNumber() {
@@ -53,6 +69,76 @@ app.get('/api/products', async (_req, res, next) => {
   try {
     const products = await readJson(productsFile);
     res.json({ products });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get('/api/admin/orders', requireAdmin, async (_req, res, next) => {
+  try {
+    const orders = await readJson(ordersFile);
+    orders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    res.json({ orders });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.patch('/api/admin/products/:id', requireAdmin, async (req, res, next) => {
+  try {
+    const productId = Number(req.params.id);
+    if (!Number.isInteger(productId)) {
+      return res.status(400).json({ error: 'ID de produto inválido.' });
+    }
+
+    const updates = req.body || {};
+    const allowedFields = ['price', 'old', 'stock', 'badge'];
+    const suppliedFields = Object.keys(updates);
+    if (!suppliedFields.length || suppliedFields.some(field => !allowedFields.includes(field))) {
+      return res.status(400).json({ error: 'Informe apenas price, old, stock ou badge.' });
+    }
+
+    const products = await readJson(productsFile);
+    const product = products.find(item => item.id === productId);
+    if (!product) return res.status(404).json({ error: 'Produto não encontrado.' });
+
+    if (Object.hasOwn(updates, 'price')) {
+      const price = Number(updates.price);
+      if (!Number.isFinite(price) || price < 0) {
+        return res.status(400).json({ error: 'Preço deve ser um número igual ou maior que zero.' });
+      }
+      product.price = Number(price.toFixed(2));
+    }
+
+    if (Object.hasOwn(updates, 'old')) {
+      if (updates.old === null || updates.old === '') {
+        product.old = null;
+      } else {
+        const old = Number(updates.old);
+        if (!Number.isFinite(old) || old < 0) {
+          return res.status(400).json({ error: 'Preço anterior deve ser um número não negativo ou vazio.' });
+        }
+        product.old = Number(old.toFixed(2));
+      }
+    }
+
+    if (Object.hasOwn(updates, 'stock')) {
+      const stock = Number(updates.stock);
+      if (!Number.isInteger(stock) || stock < 0) {
+        return res.status(400).json({ error: 'Estoque deve ser um número inteiro igual ou maior que zero.' });
+      }
+      product.stock = stock;
+    }
+
+    if (Object.hasOwn(updates, 'badge')) {
+      if (updates.badge !== null && typeof updates.badge !== 'string') {
+        return res.status(400).json({ error: 'Selo deve ser texto ou null.' });
+      }
+      product.badge = updates.badge === '' ? null : updates.badge;
+    }
+
+    await writeJson(productsFile, products);
+    res.json({ product });
   } catch (error) {
     next(error);
   }
