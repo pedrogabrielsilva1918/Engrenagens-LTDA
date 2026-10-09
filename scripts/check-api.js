@@ -55,7 +55,12 @@ try {
 
   await check('/', body => body.toLowerCase().includes('<!doctype html') && body.includes('Engrenagens LTDA'));
   await check('/checkout.html', body => body.includes('checkout.js'));
-  await check('/admin.html', body => body.includes('admin.js'));
+  await check('/admin.html', body =>
+    body.includes('admin.js') &&
+    body.includes('id="orderSearch"') &&
+    body.includes('id="orderFilter"') &&
+    body.includes('id="exportOrdersBtn"')
+  );
 
   const privateData = await fetch(`${baseUrl}/server/src/data/orders.json`);
   if (privateData.status !== 404) {
