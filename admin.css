@@ -56,3 +56,16 @@
 .statusPill.productInactive{background:#f3e8e6;color:var(--danger)}
 .inactiveProductRow td{background:#fbfaf8}
 .inactiveProductRow .productName{color:#777}
+
+/* Busca e exportação de pedidos */
+.ordersSectionHead{align-items:flex-end}
+.orderTools{display:flex;align-items:center;justify-content:flex-end;gap:9px;flex-wrap:wrap;min-width:0}
+.orderTools .filterInput{max-width:none}
+.orderSearch{width:240px}
+.orderStatusFilter{width:205px}
+.orderTools .outlineBtn{cursor:pointer}
+.orderTools .outlineBtn:disabled{opacity:.45;cursor:not-allowed}
+.ordersCount{display:inline-block;margin-top:8px;color:var(--muted);font-size:11px}
+.orderCustomerName{display:block;margin-top:4px;color:var(--muted);font-size:10px}
+@media(max-width:1100px){.ordersSectionHead{display:block}.orderTools{justify-content:flex-start;margin-top:13px}.orderSearch{flex:1 1 220px}.orderStatusFilter{flex:0 1 205px}}
+@media(max-width:600px){.orderTools{display:grid;grid-template-columns:1fr;gap:8px}.orderTools .filterInput,.orderTools .outlineBtn{width:100%}.orderTools .outlineBtn{white-space:normal}}
