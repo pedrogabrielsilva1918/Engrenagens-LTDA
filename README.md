@@ -100,6 +100,10 @@ No painel, informe a URL da API (`http://localhost:3000`) e a mesma chave config
 
 O servidor recalcula subtotais usando os preços do catálogo no backend, agrega itens repetidos para validar estoque, serializa as operações que alteram estoque e grava arquivos JSON usando substituição atômica. Ao cancelar um pedido pelo painel, as quantidades voltam ao estoque.
 
+## Gestão de pedidos
+
+No painel administrativo, pesquise pedidos por número, empresa, responsável, e-mail, telefone ou documento. O filtro de status pode ser combinado com a busca. O botão **Exportar CSV** baixa somente os pedidos que correspondem aos filtros atuais, em formato compatível com planilhas. O arquivo contém dados de contato e entrega; guarde-o com cuidado e compartilhe apenas com pessoas autorizadas.
+
 ## Gestão de produtos
 
 No painel administrativo (`/admin.html`), os produtos podem ser cadastrados, ter preço/estoque atualizados e ser desativados ou reativados. Desativar é uma exclusão lógica: o produto não aparece no catálogo público e não pode entrar em novos pedidos, mas permanece armazenado para preservar o histórico. Produtos antigos sem a propriedade `active` continuam ativos por compatibilidade.
