@@ -8,7 +8,8 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const siteRoot = path.resolve(__dirname, '../..');
-const dataDir = path.join(__dirname, 'data');
+const seedDir = path.join(__dirname, 'data');
+const dataDir = path.join(siteRoot, 'data'); // dados mutáveis fora dos arquivos versionados
 const productsFile = path.join(dataDir, 'products.json');
 const ordersFile = path.join(dataDir, 'orders.json');
 
@@ -348,6 +349,16 @@ app.use((error, _req, res, _next) => {
 });
 
 await fs.mkdir(dataDir, { recursive: true });
+try {
+  await fs.access(productsFile);
+} catch {
+  await fs.copyFile(path.join(seedDir, 'products.json'), productsFile);
+}
+try {
+  await fs.access(ordersFile);
+} catch {
+  await fs.writeFile(ordersFile, '[]\\n', 'utf8');
+}
 app.listen(port, () => {
   console.log(`Engrenagens LTDA API em http://localhost:${port}`);
 });
