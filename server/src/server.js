@@ -816,7 +816,7 @@ app.post('/api/orders', serializeMutations, async (req, res, next) => {
 const publicFiles = new Set([
   'index.html', 'styles.css', 'script.js', 'products.js', 'config.js',
   'checkout.html', 'checkout.css', 'checkout.js',
-  'admin.html', 'admin.css', 'admin.js', 'chat-widget.js', 'chat-widget.css'
+  'admin.html', 'admin.css', 'admin.js', 'chat-widget.js', 'chat-widget.css', 'chat-widget.js', 'chat-widget.css'
 ]);
 const publicRoutes = [
   '/', ...[...publicFiles].map(file => `/${file}`)
