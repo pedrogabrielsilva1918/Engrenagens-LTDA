@@ -118,3 +118,10 @@
 #chatReplyStatus{display:block;margin-top:8px;color:var(--muted);font-size:10px;line-height:1.5}
 @media(max-width:800px){.chatAdminLayout{grid-template-columns:1fr}.chatSessionsList{max-height:270px}.chatAdminThread{min-height:370px}.chatThreadMessages{min-height:230px;max-height:430px}}
 @media(max-width:600px){.chatThreadHeader{align-items:flex-start;flex-direction:column}.chatThreadHeader .outlineBtn{max-width:none;width:100%}.chatReplyRow{align-items:stretch;flex-direction:column}.chatReplyRow button{width:100%}}
+
+.chatInboxTools{display:grid;gap:6px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.chatInboxTools label{font-size:10px;font-weight:900;color:var(--muted)}
+.chatInboxTools .filterInput{width:100%;max-width:none;font-size:11px;padding:9px 10px}
+.chatInboxTools .filterInput:disabled{opacity:.55}
+.chatSessionBadges{display:flex;align-items:center;gap:5px;flex-shrink:0}
+.chatSessionState.needsReply{background:#fff0d5;color:#8a5b00}
