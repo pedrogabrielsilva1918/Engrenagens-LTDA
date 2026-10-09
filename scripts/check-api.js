@@ -55,6 +55,19 @@ try {
 
   await check('/', body => body.toLowerCase().includes('<!doctype html') && body.includes('Engrenagens LTDA'));
   await check('/checkout.html', body => body.includes('checkout.js'));
+  await check('/chat-widget.js', body =>
+    body.includes('engChatLauncher') && body.includes('/api/chat/sessions')
+  );
+  await check('/chat-widget.css', body => body.includes('.engChatPanel'));
+
+  const chatAdminResponse = await fetch(`${baseUrl}/api/admin/chat/sessions`, {
+    headers: { Accept: 'application/json' }
+  });
+  if (![401, 503].includes(chatAdminResponse.status)) {
+    throw new Error(`GET /api/admin/chat/sessions: esperado endpoint protegido (HTTP 401 ou 503), recebido HTTP ${chatAdminResponse.status}`);
+  }
+  console.log('OK  caixa de entrada administrativa do chat protegida');
+
   await check('/admin.html', body =>
     body.includes('admin.js') &&
     body.includes('id="orderSearch"') &&
