@@ -50,6 +50,9 @@ function setConnected(connected, message = '') {
   status.className = 'statusTag ' + (connected ? 'online' : 'offline');
   byId('refreshBtn').disabled = !connected;
   byId('createProductBtn').disabled = !connected;
+  byId('orderSearch').disabled = !connected;
+  byId('orderFilter').disabled = !connected;
+  byId('exportOrdersBtn').disabled = !connected || getFilteredOrders().length === 0;
   byId('connectBtn').textContent = connected ? 'Reconectar' : 'Conectar';
   byId('connectMessage').textContent = message;
   byId('connectMessage').className = 'connectMessage' + (connected ? ' success' : ' error');
@@ -126,11 +129,35 @@ function statusLabel(status) {
   return labels[status] || status || '—';
 }
 
-function renderOrders() {
+function getFilteredOrders() {
   const filter = byId('orderFilter').value;
-  const filtered = orders.filter(order => filter === 'all' || order.status === filter);
+  const query = byId('orderSearch').value.trim().toLocaleLowerCase('pt-BR');
+  return orders.filter(order => {
+    if (filter !== 'all' && order.status !== filter) return false;
+    if (!query) return true;
+    const customer = order.customer || {};
+    const searchable = [
+      order.orderNumber,
+      customer.name,
+      customer.company,
+      customer.email,
+      customer.phone,
+      customer.document
+    ].join(' ').toLocaleLowerCase('pt-BR');
+    return searchable.includes(query);
+  });
+}
+
+function renderOrders() {
+  const filtered = getFilteredOrders();
+  byId('ordersCount').textContent = orders.length
+    ? \`\${filtered.length} de \${orders.length} pedido(s)\`
+    : 'Nenhum pedido registrado no servidor.';
+  byId('exportOrdersBtn').disabled =
+    byId('connectionStatus').textContent !== 'Conectado' || filtered.length === 0;
+
   if (!filtered.length) {
-    ordersTable.innerHTML = '<tr><td colspan="7" class="tableEmpty">Nenhum pedido registrado até agora.</td></tr>';
+    ordersTable.innerHTML = '<tr><td colspan="7" class="tableEmpty">Nenhum pedido corresponde à busca ou ao filtro selecionado.</td></tr>';
     return;
   }
 
@@ -148,21 +175,81 @@ function renderOrders() {
     const nextStatuses = transitions[status] || [];
     const choices = [status, ...nextStatuses];
     const options = choices.map(value =>
-      `<option value="${escapeHtml(value)}" ${value === status ? 'selected' : ''}>${escapeHtml(statusLabel(value))}</option>`
+      \`<option value="\${escapeHtml(value)}" \${value === status ? 'selected' : ''}>\${escapeHtml(statusLabel(value))}</option>\`
     ).join('');
-    return `<tr>
-      <td><button class="orderLink" data-show-order="${escapeHtml(order.orderNumber)}">${escapeHtml(order.orderNumber)}</button></td>
-      <td>${escapeHtml(formatDate(order.createdAt))}</td>
-      <td>${escapeHtml(order.customer?.company || order.customer?.name || '—')}</td>
-      <td>${escapeHtml(String(order.payment || '—').toUpperCase())}</td>
-      <td><span class="statusPill ${status === 'pending_payment' ? 'pending' : ''}">${escapeHtml(statusLabel(status))}</span></td>
-      <td><b>${brl(order.total ?? order.subtotal)}</b></td>
+    return \`<tr>
+      <td><button class="orderLink" data-show-order="\${escapeHtml(order.orderNumber)}">\${escapeHtml(order.orderNumber)}</button></td>
+      <td>\${escapeHtml(formatDate(order.createdAt))}</td>
+      <td><div>\${escapeHtml(order.customer?.company || order.customer?.name || '—')}</div><small class="orderCustomerName">\${escapeHtml(order.customer?.name || '')}</small></td>
+      <td>\${escapeHtml(String(order.payment || '—').toUpperCase())}</td>
+      <td><span class="statusPill \${status === 'pending_payment' ? 'pending' : ''}">\${escapeHtml(statusLabel(status))}</span></td>
+      <td><b>\${brl(order.total ?? order.subtotal)}</b></td>
       <td><div class="orderStatusActions">
-        <select class="statusSelect" aria-label="Novo status do pedido ${escapeHtml(order.orderNumber)}" data-status-for="${escapeHtml(order.orderNumber)}" ${nextStatuses.length ? '' : 'disabled'}>${options}</select>
-        <button class="saveStatusBtn" data-update-order="${escapeHtml(order.orderNumber)}" ${nextStatuses.length ? '' : 'disabled'}>Salvar</button>
+        <select class="statusSelect" aria-label="Novo status do pedido \${escapeHtml(order.orderNumber)}" data-status-for="\${escapeHtml(order.orderNumber)}" \${nextStatuses.length ? '' : 'disabled'}>\${options}</select>
+        <button class="saveStatusBtn" data-update-order="\${escapeHtml(order.orderNumber)}" \${nextStatuses.length ? '' : 'disabled'}>Salvar</button>
       </div></td>
-    </tr>`;
+    </tr>\`;
   }).join('');
+}
+
+function csvCell(value) {
+  let text = String(value ?? '').replace(/\r\n|\r|\n/g, ' ');
+  // Evita que conteúdos exportados sejam interpretados como fórmulas por planilhas.
+  if (/^[\t ]*[=+\-@]/.test(text)) text = "'" + text;
+  return '"' + text.replace(/"/g, '""') + '"';
+}
+
+function exportOrdersCsv() {
+  const filtered = getFilteredOrders();
+  if (!filtered.length) {
+    showToast('Não há pedidos para exportar com os filtros atuais.', true);
+    return;
+  }
+
+  const headers = [
+    'Número do pedido', 'Data UTC', 'Empresa', 'Responsável', 'E-mail',
+    'Telefone', 'Documento', 'Forma de pagamento', 'Status',
+    'Subtotal (R$)', 'Total (R$)', 'CEP', 'Cidade', 'Estado',
+    'Endereço', 'Número', 'Complemento', 'Itens'
+  ];
+  const rows = filtered.map(order => {
+    const customer = order.customer || {};
+    const items = (order.items || []).map(item =>
+      \`\${item.name || 'Produto'} (SKU \${item.sku || '—'}) x \${Number(item.qty) || 0}\`
+    ).join(' | ');
+    return [
+      order.orderNumber,
+      order.createdAt ? new Date(order.createdAt).toISOString() : '',
+      customer.company,
+      customer.name,
+      customer.email,
+      customer.phone,
+      customer.document,
+      String(order.payment || '').toUpperCase(),
+      statusLabel(order.status),
+      Number(order.subtotal ?? order.total ?? 0).toFixed(2),
+      Number(order.total ?? order.subtotal ?? 0).toFixed(2),
+      customer.cep,
+      customer.city,
+      customer.state,
+      customer.address,
+      customer.number,
+      customer.complement,
+      items
+    ];
+  });
+  const csv = '\uFEFF' + [headers, ...rows].map(row => row.map(csvCell).join(';')).join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  const today = new Date().toISOString().slice(0, 10);
+  link.href = url;
+  link.download = \`engrenagens-pedidos-\${today}.csv\`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+  showToast(\`\${filtered.length} pedido(s) exportado(s) para CSV.\`);
 }
 
 function showOrderDetails(orderNumber) {
@@ -305,6 +392,8 @@ byId('refreshBtn').addEventListener('click', async () => {
 });
 byId('productFilter').addEventListener('input', renderProducts);
 byId('orderFilter').addEventListener('change', renderOrders);
+byId('orderSearch').addEventListener('input', renderOrders);
+byId('exportOrdersBtn').addEventListener('click', exportOrdersCsv);
 productsTable.addEventListener('click', async event => {
   const saveButton = event.target.closest('[data-save-product]');
   if (saveButton) {
