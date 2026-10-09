@@ -10,7 +10,8 @@
   },
   "dependencies": {
     "cors": "^2.8.5",
-    "express": "^5.1.0"
+    "express": "^5.1.0",
+    "dotenv": "^16.4.7"
   },
   "engines": {
     "node": ">=20"
