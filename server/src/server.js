@@ -116,7 +116,7 @@ async function prepareOrder(body = {}) {
 
   for (const item of normalizedRequest) {
     const product = products.find(entry => entry.id === item.id);
-    if (!product) throw Object.assign(new Error('Produto ' + item.id + ' não encontrado.'), { statusCode: 400 });
+    if (!product || product.active === false) throw Object.assign(new Error('Produto ' + item.id + ' não está disponível.'), { statusCode: 400 });
     if (product.stock < item.qty) {
       throw Object.assign(new Error('Estoque insuficiente para "' + product.name + '". Disponível: ' + product.stock + '.'), { statusCode: 409 });
     }
@@ -224,6 +224,17 @@ app.get('/api/health', (_req, res) => {
 });
 
 app.get('/api/products', async (_req, res, next) => {
+  try {
+    const allProducts = await readJson(productsFile);
+    // Registros antigos sem "active" continuam ativos; os inativos não vão para a loja.
+    const products = allProducts.filter(product => product.active !== false);
+    res.json({ products });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get('/api/admin/products', requireAdmin, async (_req, res, next) => {
   try {
     const products = await readJson(productsFile);
     res.json({ products });
@@ -336,6 +347,7 @@ app.post('/api/admin/products', requireAdmin, serializeMutations, async (req, re
     const nextId = products.reduce((max, product) => Math.max(max, Number(product.id) || 0), 0) + 1;
     const product = {
       id: nextId,
+      active: true,
       name,
       category,
       price: Number(price.toFixed(2)),
@@ -364,10 +376,10 @@ app.patch('/api/admin/products/:id', requireAdmin, serializeMutations, async (re
     }
 
     const updates = req.body || {};
-    const allowedFields = ['price', 'old', 'stock', 'badge'];
+    const allowedFields = ['price', 'old', 'stock', 'badge', 'active'];
     const suppliedFields = Object.keys(updates);
     if (!suppliedFields.length || suppliedFields.some(field => !allowedFields.includes(field))) {
-      return res.status(400).json({ error: 'Informe apenas price, old, stock ou badge.' });
+      return res.status(400).json({ error: 'Informe apenas price, old, stock, badge ou active.' });
     }
 
     const products = await readJson(productsFile);
@@ -407,6 +419,13 @@ app.patch('/api/admin/products/:id', requireAdmin, serializeMutations, async (re
         return res.status(400).json({ error: 'Selo deve ser texto ou null.' });
       }
       product.badge = updates.badge === '' ? null : updates.badge;
+    }
+
+    if (Object.hasOwn(updates, 'active')) {
+      if (typeof updates.active !== 'boolean') {
+        return res.status(400).json({ error: 'O estado do produto deve ser verdadeiro ou falso.' });
+      }
+      product.active = updates.active;
     }
 
     await writeJson(productsFile, products);
