@@ -87,6 +87,138 @@ function validateCustomer(customer = {}) {
   return null;
 }
 
+
+async function prepareOrder(body = {}) {
+  const { customer, items, payment = 'pix' } = body || {};
+  const customerError = validateCustomer(customer);
+  if (customerError) throw Object.assign(new Error(customerError), { statusCode: 400 });
+
+  if (!Array.isArray(items) || items.length === 0) {
+    throw Object.assign(new Error('O pedido precisa ter pelo menos um item.'), { statusCode: 400 });
+  }
+  if (!['pix', 'card', 'boleto'].includes(payment)) {
+    throw Object.assign(new Error('Forma de pagamento inválida.'), { statusCode: 400 });
+  }
+
+  const products = await readJson(productsFile);
+  const orders = await readJson(ordersFile);
+  const requested = items.map(item => ({ id: Number(item.id), qty: Number(item.qty) }));
+  if (requested.some(item => !Number.isInteger(item.id) || !Number.isInteger(item.qty) || item.qty <= 0)) {
+    throw Object.assign(new Error('Itens do pedido inválidos.'), { statusCode: 400 });
+  }
+
+  const quantitiesByProduct = new Map();
+  for (const item of requested) {
+    quantitiesByProduct.set(item.id, (quantitiesByProduct.get(item.id) || 0) + item.qty);
+  }
+  const normalizedRequest = [...quantitiesByProduct.entries()].map(([id, qty]) => ({ id, qty }));
+  const normalizedItems = [];
+
+  for (const item of normalizedRequest) {
+    const product = products.find(entry => entry.id === item.id);
+    if (!product) throw Object.assign(new Error('Produto ' + item.id + ' não encontrado.'), { statusCode: 400 });
+    if (product.stock < item.qty) {
+      throw Object.assign(new Error('Estoque insuficiente para "' + product.name + '". Disponível: ' + product.stock + '.'), { statusCode: 409 });
+    }
+    normalizedItems.push({
+      id: product.id,
+      name: product.name,
+      sku: product.sku,
+      qty: item.qty,
+      unitPrice: product.price,
+      total: Number((product.price * item.qty).toFixed(2))
+    });
+  }
+
+  const subtotal = Number(normalizedItems.reduce((sum, item) => sum + item.total, 0).toFixed(2));
+  const order = {
+    orderNumber: createOrderNumber(),
+    createdAt: new Date().toISOString(),
+    status: 'pending_payment',
+    payment,
+    paymentProvider: 'demo',
+    paymentStatus: 'not_configured',
+    customer: {
+      company: String(customer.company).trim(),
+      name: String(customer.name).trim(),
+      email: String(customer.email).trim(),
+      phone: String(customer.phone).trim(),
+      document: String(customer.document || '').trim(),
+      cep: String(customer.cep).trim(),
+      city: String(customer.city).trim(),
+      state: String(customer.state).trim(),
+      address: String(customer.address).trim(),
+      number: String(customer.number).trim(),
+      complement: String(customer.complement || '').trim(),
+      notes: String(customer.notes || '').trim()
+    },
+    items: normalizedItems,
+    subtotal,
+    total: subtotal
+  };
+  return { order, products, orders };
+}
+
+async function persistPreparedOrder(prepared) {
+  for (const item of prepared.order.items) {
+    const product = prepared.products.find(entry => entry.id === item.id);
+    if (product) product.stock -= item.qty;
+  }
+  prepared.orders.push(prepared.order);
+  await writeJson(productsFile, prepared.products);
+  await writeJson(ordersFile, prepared.orders);
+}
+
+function mercadoPagoSettings() {
+  const accessToken = String(process.env.MP_ACCESS_TOKEN || '').trim();
+  const webhookSecret = String(process.env.MP_WEBHOOK_SECRET || '').trim();
+  const configuredBase = String(process.env.PUBLIC_BASE_URL || '').trim();
+  let publicBaseUrl = '';
+
+  try {
+    const parsed = new URL(configuredBase);
+    if (parsed.protocol === 'https:' && parsed.pathname === '/' && !parsed.search && !parsed.hash) {
+      publicBaseUrl = parsed.origin;
+    }
+  } catch {
+    // Uma URL pública inválida mantém a integração desativada.
+  }
+
+  const missing = [];
+  if (!accessToken) missing.push('MP_ACCESS_TOKEN');
+  if (!webhookSecret) missing.push('MP_WEBHOOK_SECRET');
+  if (!publicBaseUrl) missing.push('PUBLIC_BASE_URL (URL HTTPS sem caminho)');
+  const anyConfigured = Boolean(accessToken || webhookSecret || configuredBase);
+  return {
+    accessToken,
+    webhookSecret,
+    publicBaseUrl,
+    missing,
+    configured: missing.length === 0,
+    mode: missing.length === 0 ? 'mercadopago' : (anyConfigured ? 'incomplete' : 'demo')
+  };
+}
+
+function validateMercadoPagoSignature(signature, requestId, dataId, secret) {
+  if (!signature || !requestId || !dataId || !secret) return false;
+  const parts = Object.create(null);
+  for (const part of String(signature).split(',')) {
+    const index = part.indexOf('=');
+    if (index > 0) parts[part.slice(0, index).trim()] = part.slice(index + 1).trim();
+  }
+  if (!parts.ts || !parts.v1) return false;
+
+  const manifest = 'id:' + String(dataId).toLowerCase() + ';request-id:' + requestId + ';ts:' + parts.ts + ';';
+  const expected = crypto.createHmac('sha256', secret).update(manifest).digest();
+  let received;
+  try {
+    received = Buffer.from(parts.v1, 'hex');
+  } catch {
+    return false;
+  }
+  return received.length === expected.length && crypto.timingSafeEqual(received, expected);
+}
+
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true, service: 'engrenagens-ltda-api', timestamp: new Date().toISOString() });
 });
@@ -228,96 +360,178 @@ app.get('/api/orders/:orderNumber', requireAdmin, async (req, res, next) => {
   }
 });
 
-app.post('/api/orders', serializeMutations, async (req, res, next) => {
+app.get('/api/payments/status', (_req, res) => {
+  const settings = mercadoPagoSettings();
+  res.json({
+    provider: 'mercadopago',
+    mode: settings.mode,
+    configured: settings.configured,
+    missing: settings.missing
+  });
+});
+
+app.post('/api/payments/checkout', serializeMutations, async (req, res, next) => {
   try {
-    const { customer, items, payment = 'pix' } = req.body || {};
-    const customerError = validateCustomer(customer);
-    if (customerError) return res.status(400).json({ error: customerError });
-
-    if (!Array.isArray(items) || items.length === 0) {
-      return res.status(400).json({ error: 'O pedido precisa ter pelo menos um item.' });
-    }
-
-    if (!['pix', 'card', 'boleto'].includes(payment)) {
-      return res.status(400).json({ error: 'Forma de pagamento inválida.' });
-    }
-
-    const products = await readJson(productsFile);
-    const orders = await readJson(ordersFile);
-
-    const requested = items.map(item => ({
-      id: Number(item.id),
-      qty: Number(item.qty)
-    }));
-
-    if (requested.some(item => !Number.isInteger(item.id) || !Number.isInteger(item.qty) || item.qty <= 0)) {
-      return res.status(400).json({ error: 'Itens do pedido inválidos.' });
-    }
-
-    // Junta linhas repetidas do mesmo produto para validar o total solicitado.
-    const quantitiesByProduct = new Map();
-    for (const item of requested) {
-      quantitiesByProduct.set(item.id, (quantitiesByProduct.get(item.id) || 0) + item.qty);
-    }
-    const normalizedRequest = [...quantitiesByProduct.entries()].map(([id, qty]) => ({ id, qty }));
-
-    const normalizedItems = [];
-    for (const item of normalizedRequest) {
-      const product = products.find(p => p.id === item.id);
-      if (!product) return res.status(400).json({ error: `Produto ${item.id} não encontrado.` });
-      if (product.stock < item.qty) {
-        return res.status(409).json({
-          error: `Estoque insuficiente para "${product.name}". Disponível: ${product.stock}.`,
-          productId: product.id,
-          available: product.stock
-        });
-      }
-      normalizedItems.push({
-        id: product.id,
-        name: product.name,
-        sku: product.sku,
-        qty: item.qty,
-        unitPrice: product.price,
-        total: Number((product.price * item.qty).toFixed(2))
+    const settings = mercadoPagoSettings();
+    if (!settings.configured) {
+      return res.status(503).json({
+        error: settings.mode === 'demo'
+          ? 'Pagamento real ainda não foi configurado. O checkout demonstrativo continua disponível.'
+          : 'Integração Mercado Pago incompleta. Configure: ' + settings.missing.join(', ') + '.'
       });
     }
 
-    const subtotal = Number(normalizedItems.reduce((sum, item) => sum + item.total, 0).toFixed(2));
-    const order = {
-      orderNumber: createOrderNumber(),
-      createdAt: new Date().toISOString(),
-      status: 'pending_payment',
-      payment: payment || 'pix',
-      customer: {
-        company: String(customer.company).trim(),
-        name: String(customer.name).trim(),
-        email: String(customer.email).trim(),
-        phone: String(customer.phone).trim(),
-        document: String(customer.document || '').trim(),
-        cep: String(customer.cep).trim(),
-        city: String(customer.city).trim(),
-        state: String(customer.state).trim(),
-        address: String(customer.address).trim(),
-        number: String(customer.number).trim(),
-        complement: String(customer.complement || '').trim(),
-        notes: String(customer.notes || '').trim()
+    const prepared = await prepareOrder(req.body);
+    const order = prepared.order;
+    const excludedByPayment = {
+      pix: ['credit_card', 'debit_card', 'prepaid_card', 'ticket'],
+      card: ['bank_transfer', 'ticket'],
+      boleto: ['bank_transfer', 'credit_card', 'debit_card', 'prepaid_card']
+    };
+    const preferenceBody = {
+      items: order.items.map(item => ({
+        id: String(item.id),
+        title: item.name,
+        quantity: item.qty,
+        currency_id: 'BRL',
+        unit_price: item.unitPrice
+      })),
+      payer: { name: order.customer.name, email: order.customer.email },
+      external_reference: order.orderNumber,
+      metadata: { order_number: order.orderNumber },
+      back_urls: {
+        success: settings.publicBaseUrl + '/checkout.html?payment=success&order=' + encodeURIComponent(order.orderNumber),
+        pending: settings.publicBaseUrl + '/checkout.html?payment=pending&order=' + encodeURIComponent(order.orderNumber),
+        failure: settings.publicBaseUrl + '/checkout.html?payment=failure&order=' + encodeURIComponent(order.orderNumber)
       },
-      items: normalizedItems,
-      subtotal,
-      total: subtotal
+      auto_return: 'approved',
+      notification_url: settings.publicBaseUrl + '/api/webhooks/mercadopago',
+      payment_methods: {
+        excluded_payment_types: excludedByPayment[order.payment].map(id => ({ id }))
+      }
     };
 
-    for (const item of normalizedItems) {
-      const product = products.find(p => p.id === item.id);
-      product.stock -= item.qty;
+    const mpResponse = await fetch('https://api.mercadopago.com/checkout/preferences', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer ' + settings.accessToken,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(preferenceBody),
+      signal: AbortSignal.timeout(15000)
+    });
+    const preference = await mpResponse.json().catch(() => ({}));
+    if (!mpResponse.ok) {
+      console.error('Mercado Pago preference error:', mpResponse.status, preference.message || preference.error || 'unknown');
+      return res.status(502).json({ error: 'Não foi possível iniciar o pagamento no Mercado Pago. Verifique as credenciais de teste e tente novamente.' });
     }
 
-    orders.push(order);
-    await writeJson(productsFile, products);
-    await writeJson(ordersFile, orders);
+    const checkoutUrl = preference.sandbox_init_point || preference.init_point;
+    let checkoutHost = '';
+    try { checkoutHost = new URL(checkoutUrl).hostname; } catch { /* URL inválida */ }
+    if (!checkoutUrl || !/^https:/.test(checkoutUrl) || !/(^|\.)mercadopago\.(com\.br|com)$/.test(checkoutHost)) {
+      return res.status(502).json({ error: 'O Mercado Pago não retornou um endereço de checkout seguro válido.' });
+    }
 
-    res.status(201).json({ order });
+    order.paymentProvider = 'mercadopago';
+    order.paymentStatus = 'created';
+    order.preferenceId = String(preference.id || '');
+    await persistPreparedOrder(prepared);
+    res.status(201).json({ orderNumber: order.orderNumber, checkoutUrl });
   } catch (error) {
+    if (error.statusCode) return res.status(error.statusCode).json({ error: error.message });
+    next(error);
+  }
+});
+
+app.post('/api/webhooks/mercadopago', serializeMutations, async (req, res, next) => {
+  try {
+    const settings = mercadoPagoSettings();
+    if (!settings.configured) return res.sendStatus(503);
+
+    const type = String(req.query.type || req.body?.type || '');
+    if (type && type !== 'payment') return res.sendStatus(200);
+
+    const dataId = String(req.query['data.id'] || req.body?.data?.id || '');
+    const isValid = validateMercadoPagoSignature(
+      req.get('x-signature'),
+      req.get('x-request-id'),
+      dataId,
+      settings.webhookSecret
+    );
+    if (!isValid) return res.status(401).json({ error: 'Assinatura de webhook inválida.' });
+
+    const paymentResponse = await fetch('https://api.mercadopago.com/v1/payments/' + encodeURIComponent(dataId), {
+      headers: { Authorization: 'Bearer ' + settings.accessToken },
+      signal: AbortSignal.timeout(12000)
+    });
+    const payment = await paymentResponse.json().catch(() => ({}));
+    if (!paymentResponse.ok) return res.status(502).json({ error: 'Não foi possível consultar o pagamento no Mercado Pago.' });
+
+    const orders = await readJson(ordersFile);
+    const order = orders.find(item => item.orderNumber === String(payment.external_reference || ''));
+    if (!order) return res.sendStatus(200);
+
+    const paidAmount = Math.round(Number(payment.transaction_amount) * 100);
+    const expectedAmount = Math.round(Number(order.total) * 100);
+    if (payment.currency_id !== 'BRL' || paidAmount !== expectedAmount) {
+      console.warn('Webhook Mercado Pago ignorado: valor/moeda divergente para o pedido', order.orderNumber);
+      return res.sendStatus(200);
+    }
+    if (order.preferenceId && payment.preference_id && String(order.preferenceId) !== String(payment.preference_id)) {
+      console.warn('Webhook Mercado Pago ignorado: preferência divergente para o pedido', order.orderNumber);
+      return res.sendStatus(200);
+    }
+
+    const paymentStatus = String(payment.status || 'unknown');
+    let shouldWriteProducts = false;
+    let changed = false;
+    if (order.status === 'pending_payment' && paymentStatus === 'approved') {
+      order.status = 'paid';
+      order.paymentProvider = 'mercadopago';
+      order.paymentStatus = paymentStatus;
+      order.paymentId = String(payment.id || dataId);
+      order.paymentMethodId = String(payment.payment_method_id || '');
+      changed = true;
+    } else if (order.status === 'pending_payment' && ['rejected', 'cancelled'].includes(paymentStatus)) {
+      const products = await readJson(productsFile);
+      for (const item of order.items || []) {
+        const product = products.find(entry => entry.id === item.id);
+        if (product) product.stock += Number(item.qty) || 0;
+      }
+      order.status = 'cancelled';
+      order.paymentProvider = 'mercadopago';
+      order.paymentStatus = paymentStatus;
+      order.paymentId = String(payment.id || dataId);
+      order.cancelledAt = new Date().toISOString();
+      order.cancellationStockRestored = true;
+      await writeJson(productsFile, products);
+      shouldWriteProducts = true;
+      changed = true;
+    } else if (order.paymentStatus !== paymentStatus) {
+      order.paymentStatus = paymentStatus;
+      order.paymentId = String(payment.id || dataId);
+      changed = true;
+    }
+
+    if (changed) {
+      order.updatedAt = new Date().toISOString();
+      await writeJson(ordersFile, orders);
+    }
+    if (shouldWriteProducts) console.log('Estoque restaurado após pagamento cancelado/rejeitado:', order.orderNumber);
+    res.sendStatus(200);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post('/api/orders', serializeMutations, async (req, res, next) => {
+  try {
+    const prepared = await prepareOrder(req.body);
+    await persistPreparedOrder(prepared);
+    res.status(201).json({ order: prepared.order });
+  } catch (error) {
+    if (error.statusCode) return res.status(error.statusCode).json({ error: error.message });
     next(error);
   }
 });
