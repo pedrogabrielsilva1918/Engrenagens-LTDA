@@ -79,6 +79,7 @@ Antes de vender em produção, hospede a aplicação em uma URL permanente HTTPS
 - `GET /api/admin/orders` — consulta pedidos, com chave administrativa.
 - `GET /api/orders/:orderNumber` — consulta um pedido, com chave administrativa.
 - `PATCH /api/admin/orders/:orderNumber` — atualiza status com transições permitidas, com chave administrativa.
+- `POST /api/admin/products` — cadastra um produto novo, validando SKU exclusivo, preço, preço anterior, descrição e estoque; exige chave administrativa.
 - `PATCH /api/admin/products/:id` — altera preço, preço anterior, estoque e selo, com chave administrativa.
 
 Para verificar a API, abra `http://localhost:3000/api/health` ou rode em outro terminal:
