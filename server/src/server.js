@@ -357,7 +357,7 @@ try {
 try {
   await fs.access(ordersFile);
 } catch {
-  await fs.writeFile(ordersFile, '[]\n', 'utf8');
+  await fs.copyFile(path.join(seedDir, 'orders.json'), ordersFile);
 }
 app.listen(port, () => {
   console.log(`Engrenagens LTDA API em http://localhost:${port}`);
