@@ -90,6 +90,15 @@
       <div class="chatAdminLayout">
         <aside class="chatInbox" aria-label="Lista de conversas">
           <div class="chatInboxHeader"><strong>Conversas</strong><span id="chatOpenCount" class="statusPill pending">0 abertas</span></div>
+          <div class="chatInboxTools">
+            <label for="chatInboxFilter">Mostrar conversas</label>
+            <select id="chatInboxFilter" class="filterInput" disabled>
+              <option value="attention">Aguardando resposta</option>
+              <option value="open">Todas as abertas</option>
+              <option value="closed">Encerradas</option>
+              <option value="all">Todas as conversas</option>
+            </select>
+          </div>
           <div id="chatSessionsList" class="chatSessionsList"><p class="chatEmpty">Conecte-se à API para ver as mensagens.</p></div>
         </aside>
         <section class="chatAdminThread" aria-label="Conversa selecionada">
