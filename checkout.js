@@ -1,18 +1,40 @@
-const products = window.PRODUCTS;
+let products = window.PRODUCTS;
 const brl = value => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
 const cart = JSON.parse(localStorage.getItem('engrenagens-cart') || '[]')
-  .map(item => ({ id: item.id, qty: Number(item.qty) || 0 }))
-  .filter(item => item.qty > 0);
+  .map(item => ({ id: Number(item.id), qty: Number(item.qty) || 0 }))
+  .filter(item => Number.isInteger(item.id) && item.qty > 0);
 
-const validCart = cart
-  .map(item => {
-    const product = products.find(p => p.id === item.id);
-    if (!product || product.stock <= 0) return null;
-    return { ...item, qty: Math.min(item.qty, product.stock) };
-  })
-  .filter(Boolean)
-  .filter(item => item.qty > 0);
+let validCart = [];
+
+function rebuildValidCart() {
+  validCart = cart
+    .map(item => {
+      const product = products.find(p => p.id === item.id);
+      if (!product || product.stock <= 0) return null;
+      return { id: item.id, qty: Math.min(item.qty, product.stock) };
+    })
+    .filter(Boolean)
+    .filter(item => item.qty > 0);
+}
+
+async function syncCheckoutProducts() {
+  const baseUrl = (window.API_BASE_URL || '').replace(/\/$/, '');
+  if (baseUrl) {
+    try {
+      const response = await fetch(`${baseUrl}/api/products`, {
+        headers: { Accept: 'application/json' }
+      });
+      if (!response.ok) throw new Error(`API de produtos respondeu ${response.status}`);
+      const payload = await response.json();
+      if (!Array.isArray(payload.products)) throw new Error('Formato de catálogo inválido.');
+      products = payload.products;
+    } catch (error) {
+      console.warn('Não foi possível sincronizar o catálogo com a API; usando os dados locais.', error);
+    }
+  }
+  rebuildValidCart();
+}
 
 const content = document.getElementById('checkoutContent');
 const emptyState = document.getElementById('emptyState');
@@ -152,8 +174,10 @@ confirmButton.addEventListener('click', async () => {
   }
 });
 
-if (validCart.length) {
-  renderSummary();
-} else {
-  showEmptyState();
-}
+syncCheckoutProducts().then(() => {
+  if (validCart.length) {
+    renderSummary();
+  } else {
+    showEmptyState();
+  }
+});
