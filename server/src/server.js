@@ -12,6 +12,7 @@ const seedDir = path.join(__dirname, 'data');
 const dataDir = path.join(siteRoot, 'data'); // dados mutáveis fora dos arquivos versionados
 const productsFile = path.join(dataDir, 'products.json');
 const ordersFile = path.join(dataDir, 'orders.json');
+const chatFile = path.join(dataDir, 'chat.json');
 
 const app = express();
 const port = Number(process.env.PORT || 3000);
@@ -66,6 +67,40 @@ function requireAdmin(req, res, next) {
 
   if (!valid) return res.status(401).json({ error: 'Chave administrativa inválida.' });
   next();
+}
+
+
+function chatTokenHash(token) {
+  return crypto.createHash('sha256').update(String(token || '')).digest('hex');
+}
+
+function isValidChatToken(providedToken, storedHash) {
+  if (!providedToken || !storedHash) return false;
+  const received = Buffer.from(chatTokenHash(providedToken), 'hex');
+  const expected = Buffer.from(storedHash, 'hex');
+  return received.length === expected.length && crypto.timingSafeEqual(received, expected);
+}
+
+function publicChatSession(session) {
+  const { tokenHash, ...safeSession } = session;
+  return safeSession;
+}
+
+function validateChatMessage(value) {
+  const message = String(value || '').trim();
+  if (!message) return { error: 'Digite uma mensagem antes de enviar.' };
+  if (message.length > 1500) return { error: 'A mensagem deve ter no máximo 1.500 caracteres.' };
+  return { message };
+}
+
+async function getCustomerChatSession(req, res) {
+  const sessions = await readJson(chatFile);
+  const session = sessions.find(item => item.id === req.params.id);
+  if (!session || !isValidChatToken(req.get('x-chat-token'), session.tokenHash)) {
+    res.status(404).json({ error: 'Conversa não encontrada ou token inválido.' });
+    return null;
+  }
+  return { sessions, session };
 }
 
 function createOrderNumber() {
@@ -446,6 +481,161 @@ app.get('/api/orders/:orderNumber', requireAdmin, async (req, res, next) => {
   }
 });
 
+// Chat público: cada conversa usa um token aleatório próprio guardado no navegador do cliente.
+app.post('/api/chat/sessions', serializeMutations, async (req, res, next) => {
+  try {
+    const name = String(req.body?.name || '').trim();
+    const email = String(req.body?.email || '').trim().toLowerCase();
+    const validation = validateChatMessage(req.body?.message);
+    if (!name || name.length > 100) return res.status(400).json({ error: 'Informe seu nome (até 100 caracteres).' });
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 200) {
+      return res.status(400).json({ error: 'Informe um e-mail válido.' });
+    }
+    if (validation.error) return res.status(400).json({ error: validation.error });
+
+    const sessions = await readJson(chatFile);
+    const token = crypto.randomBytes(32).toString('base64url');
+    const now = new Date().toISOString();
+    const session = {
+      id: crypto.randomUUID(),
+      tokenHash: chatTokenHash(token),
+      name,
+      email,
+      status: 'open',
+      createdAt: now,
+      updatedAt: now,
+      messages: [{
+        id: crypto.randomUUID(),
+        sender: 'customer',
+        text: validation.message,
+        createdAt: now
+      }]
+    };
+    sessions.push(session);
+    await writeJson(chatFile, sessions);
+    res.status(201).json({ session: publicChatSession(session), token });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get('/api/chat/sessions/:id', async (req, res, next) => {
+  try {
+    const result = await getCustomerChatSession(req, res);
+    if (!result) return;
+    res.json({ session: publicChatSession(result.session) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post('/api/chat/sessions/:id/messages', serializeMutations, async (req, res, next) => {
+  try {
+    const result = await getCustomerChatSession(req, res);
+    if (!result) return;
+    if (result.session.status !== 'open') {
+      return res.status(409).json({ error: 'Esta conversa foi encerrada pelo atendimento.' });
+    }
+    const validation = validateChatMessage(req.body?.message);
+    if (validation.error) return res.status(400).json({ error: validation.error });
+    if (result.session.messages.length >= 500) {
+      return res.status(409).json({ error: 'Esta conversa atingiu o limite de mensagens. Inicie uma nova conversa.' });
+    }
+    const now = new Date().toISOString();
+    result.session.messages.push({
+      id: crypto.randomUUID(),
+      sender: 'customer',
+      text: validation.message,
+      createdAt: now
+    });
+    result.session.updatedAt = now;
+    await writeJson(chatFile, result.sessions);
+    res.status(201).json({ session: publicChatSession(result.session) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Caixa de entrada administrativa; todos estes endpoints exigem a chave do painel.
+app.get('/api/admin/chat/sessions', requireAdmin, async (_req, res, next) => {
+  try {
+    const sessions = await readJson(chatFile);
+    const sorted = sessions
+      .slice()
+      .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+      .map(session => {
+        const last = session.messages[session.messages.length - 1] || null;
+        return {
+          id: session.id,
+          name: session.name,
+          email: session.email,
+          status: session.status,
+          createdAt: session.createdAt,
+          updatedAt: session.updatedAt,
+          messageCount: session.messages.length,
+          lastMessage: last?.text || '',
+          lastSender: last?.sender || ''
+        };
+      });
+    res.json({ sessions: sorted });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get('/api/admin/chat/sessions/:id', requireAdmin, async (req, res, next) => {
+  try {
+    const sessions = await readJson(chatFile);
+    const session = sessions.find(item => item.id === req.params.id);
+    if (!session) return res.status(404).json({ error: 'Conversa não encontrada.' });
+    res.json({ session: publicChatSession(session) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post('/api/admin/chat/sessions/:id/messages', requireAdmin, serializeMutations, async (req, res, next) => {
+  try {
+    const validation = validateChatMessage(req.body?.message);
+    if (validation.error) return res.status(400).json({ error: validation.error });
+    const sessions = await readJson(chatFile);
+    const session = sessions.find(item => item.id === req.params.id);
+    if (!session) return res.status(404).json({ error: 'Conversa não encontrada.' });
+    if (session.status !== 'open') return res.status(409).json({ error: 'Reabra a conversa antes de responder.' });
+    if (session.messages.length >= 500) return res.status(409).json({ error: 'Esta conversa atingiu o limite de mensagens.' });
+    const now = new Date().toISOString();
+    session.messages.push({
+      id: crypto.randomUUID(),
+      sender: 'admin',
+      text: validation.message,
+      createdAt: now
+    });
+    session.updatedAt = now;
+    await writeJson(chatFile, sessions);
+    res.status(201).json({ session: publicChatSession(session) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.patch('/api/admin/chat/sessions/:id', requireAdmin, serializeMutations, async (req, res, next) => {
+  try {
+    const status = String(req.body?.status || '');
+    if (!['open', 'closed'].includes(status)) {
+      return res.status(400).json({ error: 'Status inválido. Use open ou closed.' });
+    }
+    const sessions = await readJson(chatFile);
+    const session = sessions.find(item => item.id === req.params.id);
+    if (!session) return res.status(404).json({ error: 'Conversa não encontrada.' });
+    session.status = status;
+    session.updatedAt = new Date().toISOString();
+    await writeJson(chatFile, sessions);
+    res.json({ session: publicChatSession(session) });
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.get('/api/payments/status', (_req, res) => {
   const settings = mercadoPagoSettings();
   res.json({
@@ -626,7 +816,7 @@ app.post('/api/orders', serializeMutations, async (req, res, next) => {
 const publicFiles = new Set([
   'index.html', 'styles.css', 'script.js', 'products.js', 'config.js',
   'checkout.html', 'checkout.css', 'checkout.js',
-  'admin.html', 'admin.css', 'admin.js'
+  'admin.html', 'admin.css', 'admin.js', 'chat-widget.js', 'chat-widget.css'
 ]);
 const publicRoutes = [
   '/', ...[...publicFiles].map(file => `/${file}`)
@@ -658,6 +848,11 @@ try {
   await fs.access(ordersFile);
 } catch {
   await fs.copyFile(path.join(seedDir, 'orders.json'), ordersFile);
+}
+try {
+  await fs.access(chatFile);
+} catch {
+  await fs.copyFile(path.join(seedDir, 'chat.json'), chatFile);
 }
 app.listen(port, () => {
   console.log(`Engrenagens LTDA API em http://localhost:${port}`);
