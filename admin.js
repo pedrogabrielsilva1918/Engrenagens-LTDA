@@ -124,11 +124,26 @@ function renderOrders() {
   const filter = byId('orderFilter').value;
   const filtered = orders.filter(order => filter === 'all' || order.status === filter);
   if (!filtered.length) {
-    ordersTable.innerHTML = '<tr><td colspan="6" class="tableEmpty">Nenhum pedido registrado até agora.</td></tr>';
+    ordersTable.innerHTML = '<tr><td colspan="7" class="tableEmpty">Nenhum pedido registrado até agora.</td></tr>';
     return;
   }
+
+  const transitions = {
+    pending_payment: ['paid', 'cancelled'],
+    paid: ['processing', 'cancelled'],
+    processing: ['shipped', 'cancelled'],
+    shipped: ['completed'],
+    completed: [],
+    cancelled: []
+  };
+
   ordersTable.innerHTML = filtered.map(order => {
-    const status = String(order.status || '');
+    const status = String(order.status || 'pending_payment');
+    const nextStatuses = transitions[status] || [];
+    const choices = [status, ...nextStatuses];
+    const options = choices.map(value =>
+      `<option value="${escapeHtml(value)}" ${value === status ? 'selected' : ''}>${escapeHtml(statusLabel(value))}</option>`
+    ).join('');
     return `<tr>
       <td><button class="orderLink" data-show-order="${escapeHtml(order.orderNumber)}">${escapeHtml(order.orderNumber)}</button></td>
       <td>${escapeHtml(formatDate(order.createdAt))}</td>
@@ -136,6 +151,10 @@ function renderOrders() {
       <td>${escapeHtml(String(order.payment || '—').toUpperCase())}</td>
       <td><span class="statusPill ${status === 'pending_payment' ? 'pending' : ''}">${escapeHtml(statusLabel(status))}</span></td>
       <td><b>${brl(order.total ?? order.subtotal)}</b></td>
+      <td><div class="orderStatusActions">
+        <select class="statusSelect" aria-label="Novo status do pedido ${escapeHtml(order.orderNumber)}" data-status-for="${escapeHtml(order.orderNumber)}" ${nextStatuses.length ? '' : 'disabled'}>${options}</select>
+        <button class="saveStatusBtn" data-update-order="${escapeHtml(order.orderNumber)}" ${nextStatuses.length ? '' : 'disabled'}>Salvar</button>
+      </div></td>
     </tr>`;
   }).join('');
 }
@@ -224,9 +243,47 @@ productsTable.addEventListener('click', event => {
   const button = event.target.closest('[data-save-product]');
   if (button) saveProduct(Number(button.dataset.saveProduct), button);
 });
-ordersTable.addEventListener('click', event => {
-  const button = event.target.closest('[data-show-order]');
-  if (button) showOrderDetails(button.dataset.showOrder);
+ordersTable.addEventListener('click', async event => {
+  const detailButton = event.target.closest('[data-show-order]');
+  if (detailButton) showOrderDetails(detailButton.dataset.showOrder);
+
+  const updateButton = event.target.closest('[data-update-order]');
+  if (!updateButton) return;
+  const orderNumber = updateButton.dataset.updateOrder;
+  const select = ordersTable.querySelector(`[data-status-for="${CSS.escape(orderNumber)}"]`);
+  if (!select) return;
+
+  const nextStatus = select.value;
+  const currentOrder = orders.find(order => order.orderNumber === orderNumber);
+  if (!currentOrder || nextStatus === currentOrder.status) {
+    showToast('Selecione um status diferente do atual.', true);
+    return;
+  }
+  if (nextStatus === 'cancelled' && !window.confirm('Cancelar este pedido e devolver os itens ao estoque? Essa ação não pode ser desfeita pelo painel.')) {
+    select.value = currentOrder.status;
+    return;
+  }
+
+  updateButton.disabled = true;
+  updateButton.textContent = 'Salvando...';
+  try {
+    const payload = await apiRequest(`/api/admin/orders/${encodeURIComponent(orderNumber)}`, {
+      method: 'PATCH',
+      admin: true,
+      body: JSON.stringify({ status: nextStatus })
+    });
+    orders = orders.map(order => order.orderNumber === orderNumber ? payload.order : order);
+    if (nextStatus === 'cancelled') {
+      await loadProducts();
+    }
+    renderOrders();
+    updateStats();
+    showToast(nextStatus === 'cancelled' ? 'Pedido cancelado e estoque devolvido.' : 'Status do pedido atualizado.');
+  } catch (error) {
+    showToast(error.message || 'Não foi possível atualizar o pedido.', true);
+    updateButton.disabled = false;
+    updateButton.textContent = 'Salvar';
+  }
 });
 
 if (adminKey) {
