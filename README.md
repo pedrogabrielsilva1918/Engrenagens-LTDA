@@ -63,3 +63,19 @@ Rotas administrativas protegidas por `x-admin-key`:
 - `PATCH /api/admin/products/:id` — atualiza preço, preço anterior, estoque e selo.
 
 Em produção, configure `CORS_ORIGIN` para a origem exata do frontend, publique a API com HTTPS e use banco de dados persistente antes de processar vendas reais.
+
+### Gestão de status dos pedidos
+
+No painel `admin.html`, cada pedido pode avançar pelo fluxo permitido:
+
+- `pending_payment` → `paid` ou `cancelled`.
+- `paid` → `processing` ou `cancelled`.
+- `processing` → `shipped` ou `cancelled`.
+- `shipped` → `completed`.
+- Pedidos concluídos ou cancelados não podem ser reabertos pelo painel.
+
+Ao cancelar um pedido, a API devolve as quantidades dos itens ao estoque e registra a data do cancelamento. Se já houve pagamento em um provedor externo, o estorno financeiro precisa ser feito separadamente no provedor.
+
+Endpoint administrativo protegido:
+
+- `PATCH /api/admin/orders/:orderNumber` — atualiza o status do pedido conforme as transições permitidas.
