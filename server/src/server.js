@@ -29,8 +29,8 @@ async function writeJson(file, value) {
 }
 
 function requireAdmin(req, res, next) {
-  if (!adminApiKey) {
-    return res.status(503).json({ error: 'Painel administrativo desativado. Configure ADMIN_API_KEY no ambiente do servidor.' });
+  if (!adminApiKey || adminApiKey === 'troque-por-uma-chave-forte-e-unica' || adminApiKey.length < 32) {
+    return res.status(503).json({ error: 'Painel administrativo desativado. Configure uma ADMIN_API_KEY exclusiva com pelo menos 32 caracteres.' });
   }
 
   const receivedKey = req.get('x-admin-key') || '';
@@ -145,7 +145,7 @@ app.patch('/api/admin/products/:id', requireAdmin, async (req, res, next) => {
   }
 });
 
-app.get('/api/orders/:orderNumber', async (req, res, next) => {
+app.get('/api/orders/:orderNumber', requireAdmin, async (req, res, next) => {
   try {
     const orders = await readJson(ordersFile);
     const order = orders.find(item => item.orderNumber === req.params.orderNumber);
