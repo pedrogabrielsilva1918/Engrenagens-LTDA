@@ -24,7 +24,7 @@ A API inicia por padrão em `http://localhost:3000`.
 - `GET /api/health` — verifica a API.
 - `GET /api/products` — consulta o catálogo do servidor.
 - `POST /api/orders` — cria pedido, valida estoque e baixa as quantidades.
-- `GET /api/orders/:orderNumber` — consulta um pedido.
+- `GET /api/orders/:orderNumber` — consulta um pedido (exige a chave administrativa `x-admin-key`).
 
 Para conectar o checkout à API, ajuste `config.js`:
 
