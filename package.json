@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "start": "node server/src/server.js",
-    "dev": "node --watch server/src/server.js"
+    "dev": "node --watch server/src/server.js",
+    "check:api": "node scripts/check-api.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
