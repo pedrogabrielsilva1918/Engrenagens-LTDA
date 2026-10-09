@@ -7,6 +7,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const siteRoot = path.resolve(__dirname, '../..');
 const dataDir = path.join(__dirname, 'data');
 const productsFile = path.join(dataDir, 'products.json');
 const ordersFile = path.join(dataDir, 'orders.json');
@@ -318,6 +319,23 @@ app.post('/api/orders', serializeMutations, async (req, res, next) => {
   } catch (error) {
     next(error);
   }
+});
+
+// Serve somente arquivos públicos da interface. Não exponha a pasta server/ nem os dados JSON.
+const publicFiles = new Set([
+  'index.html', 'styles.css', 'script.js', 'products.js', 'config.js',
+  'checkout.html', 'checkout.css', 'checkout.js',
+  'admin.html', 'admin.css', 'admin.js'
+]);
+const publicRoutes = [
+  '/', ...[...publicFiles].map(file => `/${file}`)
+];
+app.get(publicRoutes, (req, res, next) => {
+  const fileName = req.path === '/' ? 'index.html' : req.path.slice(1);
+  if (!publicFiles.has(fileName)) return next();
+  res.sendFile(path.join(siteRoot, fileName), error => {
+    if (error) next(error);
+  });
 });
 
 app.use((_req, res) => {
