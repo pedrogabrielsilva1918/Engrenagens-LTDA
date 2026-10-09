@@ -1,81 +1,69 @@
 # Engrenagens-LTDA
 
-## Loja virtual
-Site de vendas responsivo em `index.html`, com catálogo, busca, filtros, carrinho, checkout demonstrativo e formulário de orçamento técnico.
+## Executar loja e API localmente
 
-## Publicação
-O projeto está pronto para hospedagem estática como GitHub Pages, Vercel ou Netlify. Para vendas reais, conecte backend, gateway de pagamento, estoque e os canais comerciais da empresa.
+Requer Node.js 20 ou superior.
 
-## Backend
-
-A loja agora possui uma API Node.js/Express em `server/src/server.js`.
-
-### Rodar localmente
+1. No terminal, na raiz do repositório:
 
 ```bash
 npm install
-npm run dev
-```
-
-A API inicia por padrão em `http://localhost:3000`.
-
-### Endpoints
-
-- `GET /api/health` — verifica a API.
-- `GET /api/products` — consulta o catálogo do servidor.
-- `POST /api/orders` — cria pedido, valida estoque e baixa as quantidades.
-- `GET /api/orders/:orderNumber` — consulta um pedido (exige a chave administrativa `x-admin-key`).
-
-Para conectar o checkout à API, ajuste `config.js`:
-
-```js
-window.API_BASE_URL = 'https://api.seudominio.com';
-```
-
-Sem uma URL configurada, o checkout permanece em modo demonstrativo.
-
-> A persistência atual usa arquivos JSON e é adequada para desenvolvimento/protótipo. Antes de produção, substitua por banco de dados, autenticação, controle de concorrência, logs e gateway de pagamento.
-
-## Painel administrativo
-
-Abra `admin.html` para consultar pedidos e editar preço/preço anterior/estoque dos produtos. O painel exige uma chave que não deve ser publicada.
-
-### Configurar a chave administrativa
-
-```bash
 cp .env.example .env
 ```
 
-Edite o arquivo `.env` e troque `ADMIN_API_KEY` por uma chave forte e exclusiva. O `.env` está no `.gitignore` e não deve ser enviado ao GitHub.
-
-Depois instale a nova dependência e reinicie a API:
+2. Edite `.env` e defina uma chave administrativa secreta. Gere uma chave de 32 caracteres com:
 
 ```bash
-npm install
+node -e "console.log(require('crypto').randomBytes(24).toString('base64url'))"
+```
+
+Cole a saída depois de `ADMIN_API_KEY=` no arquivo `.env`. Não publique esse arquivo.
+
+3. Inicie o servidor:
+
+```bash
 npm run dev
 ```
 
-No painel `admin.html`, informe a URL da API (localmente `http://localhost:3000`) e a mesma chave configurada no servidor. A chave fica em `sessionStorage` apenas para a sessão atual.
+4. Abra no navegador: **http://localhost:3000**. O servidor entrega a loja, o checkout, os assets públicos e a API pela mesma porta. Não é necessário abrir `index.html` por `file://` nem executar outro servidor estático.
 
-Rotas administrativas protegidas por `x-admin-key`:
+No GitHub Codespaces, abra a porta 3000 na aba **Ports** e use o endereço encaminhado pelo Codespaces. A configuração do frontend detecta automaticamente a porta 3000 quando a página está em um endereço `*.app.github.dev`.
 
-- `GET /api/admin/orders` — consulta todos os pedidos.
-- `PATCH /api/admin/products/:id` — atualiza preço, preço anterior, estoque e selo.
+## Páginas
 
-Em produção, configure `CORS_ORIGIN` para a origem exata do frontend, publique a API com HTTPS e use banco de dados persistente antes de processar vendas reais.
+- `/` ou `/index.html` — loja.
+- `/checkout.html` — finalização demonstrativa do pedido.
+- `/admin.html` — painel administrativo.
 
-### Gestão de status dos pedidos
+O backend só entrega uma lista explícita de arquivos de frontend. Os arquivos de dados em `server/src/data` e o arquivo `.env` não são servidos como arquivos estáticos.
 
-No painel `admin.html`, cada pedido pode avançar pelo fluxo permitido:
+## API
 
-- `pending_payment` → `paid` ou `cancelled`.
-- `paid` → `processing` ou `cancelled`.
-- `processing` → `shipped` ou `cancelled`.
-- `shipped` → `completed`.
-- Pedidos concluídos ou cancelados não podem ser reabertos pelo painel.
+- `GET /api/health` — estado do servidor.
+- `GET /api/products` — catálogo e estoque.
+- `POST /api/orders` — cria pedido e valida preço/estoque no servidor.
+- `GET /api/admin/orders` — consulta pedidos, com chave administrativa.
+- `GET /api/orders/:orderNumber` — consulta um pedido, com chave administrativa.
+- `PATCH /api/admin/orders/:orderNumber` — atualiza status com transições permitidas, com chave administrativa.
+- `PATCH /api/admin/products/:id` — altera preço, preço anterior, estoque e selo, com chave administrativa.
 
-Ao cancelar um pedido, a API devolve as quantidades dos itens ao estoque e registra a data do cancelamento. Se já houve pagamento em um provedor externo, o estorno financeiro precisa ser feito separadamente no provedor.
+Para verificar a API, abra `http://localhost:3000/api/health` ou rode em outro terminal:
 
-Endpoint administrativo protegido:
+```bash
+curl http://localhost:3000/api/health
+curl http://localhost:3000/api/products
+```
 
-- `PATCH /api/admin/orders/:orderNumber` — atualiza o status do pedido conforme as transições permitidas.
+## Configuração da chave administrativa
+
+O arquivo `.env.example` é apenas um modelo. Crie seu próprio `.env`; ele já está listado no `.gitignore`. Nunca coloque `ADMIN_API_KEY` em `config.js`, no frontend ou no GitHub.
+
+No painel, informe a URL da API (`http://localhost:3000) e a mesma chave configurada em `.env`. A chave é guardada em `sessionStorage` durante a sessão da aba.
+
+## Funcionamento do pedido
+
+O servidor recalcula subtotais usando os preços do catálogo no backend, agrega itens repetidos para validar estoque, serializa as operações que alteram estoque e grava arquivos JSON usando substituição atômica. Ao cancelar um pedido pelo painel, as quantidades voltam ao estoque.
+
+## Limitações antes de produção
+
+A persistência em JSON é adequada para desenvolvimento/protótipo, não para uma loja comercial com múltiplas instâncias. Antes da produção, migre para banco de dados transacional, configure `CORS_ORIGIN` para a origem exata do frontend, hospede a API em HTTPS, implemente autenticação de administrador e integração real com gateway de pagamento. O status `paid` no painel é manual; não existe confirmação de pagamento automática nem estorno financeiro integrado.
