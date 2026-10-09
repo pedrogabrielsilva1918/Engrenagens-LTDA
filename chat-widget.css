@@ -39,3 +39,4 @@
 .engChatSrOnly{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 @media(max-width:480px){.engChatLauncher{right:13px;bottom:13px;padding:11px 14px}.engChatPanel{right:8px;bottom:70px;width:calc(100vw - 16px);height:min(610px,calc(100vh - 86px));border-radius:16px}.engChatHeader{padding:14px}}
 @media(prefers-reduced-motion:reduce){.engChatLauncher{transition:none}}
+.engChatPrivacyNote{margin:0;color:var(--chat-muted);font-size:10px;line-height:1.45}
