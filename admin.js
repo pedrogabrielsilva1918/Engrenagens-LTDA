@@ -1,6 +1,7 @@
 const brl = value => Number(value || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const byId = id => document.getElementById(id);
 const connectForm = byId('connectForm');
+const productCreateForm = byId('productCreateForm');
 const apiUrlInput = byId('apiUrl');
 const keyInput = byId('adminKey');
 const productsTable = byId('productsTable');
@@ -48,6 +49,7 @@ function setConnected(connected, message = '') {
   status.textContent = connected ? 'Conectado' : 'Desconectado';
   status.className = 'statusTag ' + (connected ? 'online' : 'offline');
   byId('refreshBtn').disabled = !connected;
+  byId('createProductBtn').disabled = !connected;
   byId('connectBtn').textContent = connected ? 'Reconectar' : 'Conectar';
   byId('connectMessage').textContent = message;
   byId('connectMessage').className = 'connectMessage' + (connected ? ' success' : ' error');
@@ -214,6 +216,66 @@ async function saveProduct(productId, button) {
     button.textContent = 'Salvar';
   }
 }
+
+
+productCreateForm.addEventListener('submit', async event => {
+  event.preventDefault();
+  if (!adminKey) {
+    showToast('Conecte-se à API antes de cadastrar produtos.', true);
+    return;
+  }
+
+  const name = byId('newProductName').value.trim();
+  const category = byId('newProductCategory').value.trim();
+  const sku = byId('newProductSku').value.trim().toUpperCase();
+  const priceText = byId('newProductPrice').value;
+  const oldText = byId('newProductOldPrice').value;
+  const stockText = byId('newProductStock').value;
+  const badge = byId('newProductBadge').value.trim();
+  const description = byId('newProductDescription').value.trim();
+  const price = Number(priceText);
+  const old = oldText === '' ? null : Number(oldText);
+  const stock = Number(stockText);
+
+  if (!name || !category || !sku || !description) {
+    showToast('Preencha nome, categoria, SKU e descrição.', true);
+    return;
+  }
+  if (priceText === '' || !Number.isFinite(price) || price < 0) {
+    showToast('Informe um preço válido, igual ou maior que zero.', true);
+    return;
+  }
+  if (oldText !== '' && (!Number.isFinite(old) || old < 0)) {
+    showToast('O preço anterior deve ser válido ou ficar em branco.', true);
+    return;
+  }
+  if (stockText === '' || !Number.isInteger(stock) || stock < 0) {
+    showToast('O estoque inicial precisa ser um inteiro igual ou maior que zero.', true);
+    return;
+  }
+
+  const button = byId('createProductBtn');
+  button.disabled = true;
+  button.textContent = 'Cadastrando...';
+  try {
+    const payload = await apiRequest('/api/admin/products', {
+      method: 'POST',
+      admin: true,
+      body: JSON.stringify({ name, category, sku, price, old, stock, badge, description })
+    });
+    products.unshift(payload.product);
+    productCreateForm.reset();
+    byId('newProductStock').value = '0';
+    renderProducts();
+    updateStats();
+    showToast('Produto cadastrado. O catálogo da loja buscará o item na API.');
+  } catch (error) {
+    showToast(error.message || 'Não foi possível cadastrar o produto.', true);
+  } finally {
+    button.disabled = byId('connectionStatus').textContent !== 'Conectado';
+    button.textContent = 'Cadastrar produto';
+  }
+});
 
 connectForm.addEventListener('submit', async event => {
   event.preventDefault();
