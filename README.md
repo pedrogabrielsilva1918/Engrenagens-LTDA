@@ -100,6 +100,14 @@ No painel, informe a URL da API (`http://localhost:3000`) e a mesma chave config
 
 O servidor recalcula subtotais usando os preços do catálogo no backend, agrega itens repetidos para validar estoque, serializa as operações que alteram estoque e grava arquivos JSON usando substituição atômica. Ao cancelar um pedido pelo painel, as quantidades voltam ao estoque.
 
+## Chat de atendimento
+
+O site inclui um botão flutuante de chat na loja e no checkout. O cliente inicia uma conversa com nome, e-mail e mensagem; um token aleatório por conversa permite que o navegador retome a sessão sem expor mensagens de outros clientes. O token bruto não é armazenado no servidor.
+
+No painel administrativo (`/admin.html`), a área **Atendimento por chat** lista as conversas recebidas, permite responder e encerrar/reabrir uma conversa. O navegador atualiza mensagens automaticamente a cada cinco segundos enquanto o chat está aberto. Isso é atualização periódica (polling), não WebSocket.
+
+As mensagens são gravadas em `/data/chat.json`, ignorado pelo Git e não servido publicamente. Por ser protótipo, antes de produção o chat precisa de limitação de abuso, política de privacidade/retensão, monitoramento e armazenamento adequado; evite guardar dados sensíveis na conversa. O atendimento só é realmente respondido enquanto alguém estiver acompanhando a caixa de entrada.
+
 ## Gestão de pedidos
 
 No painel administrativo, pesquise pedidos por número, empresa, responsável, e-mail, telefone ou documento. O filtro de status pode ser combinado com a busca. O botão **Exportar CSV** baixa somente os pedidos que correspondem aos filtros atuais, em formato compatível com planilhas. O arquivo contém dados de contato e entrega; guarde-o com cuidado e compartilhe apenas com pessoas autorizadas.
