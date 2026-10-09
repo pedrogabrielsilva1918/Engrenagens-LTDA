@@ -57,6 +57,7 @@ function setConnected(connected, message = '') {
   byId('orderFilter').disabled = !connected;
   byId('exportOrdersBtn').disabled = !connected || getFilteredOrders().length === 0;
   byId('refreshChatsBtn').disabled = !connected;
+  byId('chatInboxFilter').disabled = !connected;
   if (!connected) byId('chatReplyBtn').disabled = true;
   else renderActiveChat();
   byId('connectBtn').textContent = connected ? 'Reconectar' : 'Conectar';
@@ -387,31 +388,49 @@ async function loadChatSessions(silent = false) {
   }
 }
 
+function chatNeedsReply(session) {
+  return session.status === 'open' && session.lastSender === 'customer';
+}
+
+function getFilteredChatSessions() {
+  const filter = byId('chatInboxFilter').value;
+  if (filter === 'attention') return chatSessions.filter(chatNeedsReply);
+  if (filter === 'open') return chatSessions.filter(session => session.status === 'open');
+  if (filter === 'closed') return chatSessions.filter(session => session.status === 'closed');
+  return chatSessions;
+}
+
 function renderChatSessions() {
   const list = byId('chatSessionsList');
   const openCount = chatSessions.filter(session => session.status === 'open').length;
+  const waitingCount = chatSessions.filter(chatNeedsReply).length;
+  const filtered = getFilteredChatSessions();
   byId('chatOpenCount').textContent = openCount + ' aberta(s)';
   byId('chatInboxCount').textContent = chatSessions.length
-    ? chatSessions.length + ' conversa(s) · ' + openCount + ' aberta(s)'
+    ? chatSessions.length + ' conversa(s) · ' + openCount + ' aberta(s) · ' + waitingCount + ' aguardando resposta'
     : 'Nenhuma conversa recebida ainda.';
 
-  if (!chatSessions.length) {
-    list.innerHTML = '<p class="chatEmpty">Nenhuma conversa recebida. As mensagens enviadas pela loja aparecerão aqui.</p>';
+  if (!filtered.length) {
+    const labels = { attention: 'Nenhuma conversa aguardando resposta.', open: 'Nenhuma conversa aberta.', closed: 'Nenhuma conversa encerrada.', all: 'Nenhuma conversa recebida.' };
+    list.innerHTML = '<p class="chatEmpty">' + labels[byId('chatInboxFilter').value] + '</p>';
     return;
   }
 
-  list.innerHTML = chatSessions.map(session => {
+  list.innerHTML = filtered.map(session => {
     const sender = session.lastSender === 'admin' ? 'Você: ' : '';
     const preview = session.lastMessage || 'Conversa sem mensagens';
+    const waiting = chatNeedsReply(session);
+    const statusBadge = waiting
+      ? '<span class="chatSessionState needsReply">Aguardando</span>'
+      : '<span class="chatSessionState ' + (session.status === 'open' ? 'isOpen' : 'isClosed') + '">' + (session.status === 'open' ? 'Aberta' : 'Encerrada') + '</span>';
     return '<button class="chatSessionItem' + (activeChat && activeChat.id === session.id ? ' selected' : '') + '" type="button" data-open-chat="' + escapeHtml(session.id) + '">' +
-      '<span class="chatSessionItemTop"><strong>' + escapeHtml(session.name) + '</strong><span class="chatSessionState ' + (session.status === 'open' ? 'isOpen' : 'isClosed') + '">' + (session.status === 'open' ? 'Aberta' : 'Encerrada') + '</span></span>' +
+      '<span class="chatSessionItemTop"><strong>' + escapeHtml(session.name) + '</strong><span class="chatSessionBadges">' + statusBadge + '</span></span>' +
       '<span class="chatSessionEmail">' + escapeHtml(session.email) + '</span>' +
       '<span class="chatSessionPreview">' + escapeHtml(sender + preview) + '</span>' +
       '<span class="chatSessionDate">' + escapeHtml(formatDate(session.updatedAt)) + ' · ' + Number(session.messageCount || 0) + ' msg.</span>' +
       '</button>';
   }).join('');
 }
-
 function renderActiveChat() {
   const empty = byId('chatThreadEmpty');
   const content = byId('chatThreadContent');
@@ -545,6 +564,7 @@ byId('orderFilter').addEventListener('change', renderOrders);
 byId('orderSearch').addEventListener('input', renderOrders);
 byId('exportOrdersBtn').addEventListener('click', exportOrdersCsv);
 byId('refreshChatsBtn').addEventListener('click', () => refreshChatInbox());
+byId('chatInboxFilter').addEventListener('change', renderChatSessions);
 byId('chatSessionsList').addEventListener('click', async event => {
   const button = event.target.closest('[data-open-chat]');
   if (button) await loadChatSession(button.dataset.openChat);
