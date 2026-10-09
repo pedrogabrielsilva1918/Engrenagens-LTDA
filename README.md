@@ -43,7 +43,7 @@ No GitHub Codespaces, abra a porta 3000 na aba **Ports** e use o endereço encam
 - `/checkout.html` — finalização demonstrativa do pedido.
 - `/admin.html` — painel administrativo.
 
-O backend só entrega uma lista explícita de arquivos de frontend. Os arquivos de dados em `server/src/data` e o arquivo `.env` não são servidos como arquivos estáticos.
+O backend só entrega uma lista explícita de arquivos de frontend. Os arquivos de dados iniciais ficam em `server/src/data`; na primeira execução, a API os copia para a pasta mutável `/data` na raiz. Essa pasta é ignorada pelo Git e não é servida como conteúdo estático. O arquivo `.env` também não é servido.
 
 ## API
 
@@ -66,7 +66,7 @@ curl http://localhost:3000/api/products
 
 O arquivo `.env.example` é apenas um modelo. Crie seu próprio `.env`; ele já está listado no `.gitignore`. Nunca coloque `ADMIN_API_KEY` em `config.js`, no frontend ou no GitHub.
 
-No painel, informe a URL da API (`http://localhost:3000) e a mesma chave configurada em `.env`. A chave é guardada em `sessionStorage` durante a sessão da aba.
+No painel, informe a URL da API (`http://localhost:3000`) e a mesma chave configurada em `.env`. A chave é guardada em `sessionStorage` durante a sessão da aba.
 
 ## Funcionamento do pedido
 
