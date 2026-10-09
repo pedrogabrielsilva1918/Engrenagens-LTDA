@@ -29,6 +29,16 @@ try {
       );
   });
 
+  const productAdminResponse = await fetch(`${baseUrl}/api/admin/products`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({})
+  });
+  if (![401, 503].includes(productAdminResponse.status)) {
+    throw new Error(`/api/admin/products: esperado endpoint protegido (HTTP 401 ou 503), recebido HTTP ${productAdminResponse.status}`);
+  }
+  console.log('OK  /api/admin/products exige autenticação administrativa');
+
   await check('/api/payments/status', body => {
     const payment = JSON.parse(body);
     return ['demo', 'incomplete', 'mercadopago'].includes(payment.mode) &&
