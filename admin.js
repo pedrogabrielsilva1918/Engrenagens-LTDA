@@ -12,6 +12,9 @@ let apiBase = sessionStorage.getItem('eng-admin-api') || window.API_BASE_URL || 
 let adminKey = sessionStorage.getItem('eng-admin-key') || '';
 let products = [];
 let orders = [];
+let chatSessions = [];
+let activeChat = null;
+let chatPolling = false;
 
 apiUrlInput.value = apiBase;
 keyInput.value = adminKey;
@@ -53,6 +56,9 @@ function setConnected(connected, message = '') {
   byId('orderSearch').disabled = !connected;
   byId('orderFilter').disabled = !connected;
   byId('exportOrdersBtn').disabled = !connected || getFilteredOrders().length === 0;
+  byId('refreshChatsBtn').disabled = !connected;
+  if (!connected) byId('chatReplyBtn').disabled = true;
+  else renderActiveChat();
   byId('connectBtn').textContent = connected ? 'Reconectar' : 'Conectar';
   byId('connectMessage').textContent = message;
   byId('connectMessage').className = 'connectMessage' + (connected ? ' success' : ' error');
@@ -82,7 +88,8 @@ async function connect() {
   sessionStorage.setItem('eng-admin-key', adminKey);
   await loadProducts();
   await loadOrders();
-  setConnected(true, 'Conexão validada. Alterações em produtos são gravadas no backend.');
+  await loadChatSessions(true);
+  setConnected(true, 'Conexão validada. Produtos, pedidos e atendimento estão conectados à API.');
 }
 
 function updateStats() {
@@ -368,6 +375,149 @@ productCreateForm.addEventListener('submit', async event => {
   }
 });
 
+
+async function loadChatSessions(silent = false) {
+  try {
+    const payload = await apiRequest('/api/admin/chat/sessions', { admin: true });
+    chatSessions = Array.isArray(payload.sessions) ? payload.sessions : [];
+    renderChatSessions();
+  } catch (error) {
+    if (!silent) showToast(error.message || 'Não foi possível carregar as conversas.', true);
+    throw error;
+  }
+}
+
+function renderChatSessions() {
+  const list = byId('chatSessionsList');
+  const openCount = chatSessions.filter(session => session.status === 'open').length;
+  byId('chatOpenCount').textContent = openCount + ' aberta(s)';
+  byId('chatInboxCount').textContent = chatSessions.length
+    ? chatSessions.length + ' conversa(s) · ' + openCount + ' aberta(s)'
+    : 'Nenhuma conversa recebida ainda.';
+
+  if (!chatSessions.length) {
+    list.innerHTML = '<p class="chatEmpty">Nenhuma conversa recebida. As mensagens enviadas pela loja aparecerão aqui.</p>';
+    return;
+  }
+
+  list.innerHTML = chatSessions.map(session => {
+    const sender = session.lastSender === 'admin' ? 'Você: ' : '';
+    const preview = session.lastMessage || 'Conversa sem mensagens';
+    return '<button class="chatSessionItem' + (activeChat && activeChat.id === session.id ? ' selected' : '') + '" type="button" data-open-chat="' + escapeHtml(session.id) + '">' +
+      '<span class="chatSessionItemTop"><strong>' + escapeHtml(session.name) + '</strong><span class="chatSessionState ' + (session.status === 'open' ? 'isOpen' : 'isClosed') + '">' + (session.status === 'open' ? 'Aberta' : 'Encerrada') + '</span></span>' +
+      '<span class="chatSessionEmail">' + escapeHtml(session.email) + '</span>' +
+      '<span class="chatSessionPreview">' + escapeHtml(sender + preview) + '</span>' +
+      '<span class="chatSessionDate">' + escapeHtml(formatDate(session.updatedAt)) + ' · ' + Number(session.messageCount || 0) + ' msg.</span>' +
+      '</button>';
+  }).join('');
+}
+
+function renderActiveChat() {
+  const empty = byId('chatThreadEmpty');
+  const content = byId('chatThreadContent');
+  if (!activeChat) {
+    empty.hidden = false;
+    content.hidden = true;
+    byId('chatReplyBtn').disabled = true;
+    byId('chatStatusToggleBtn').disabled = true;
+    return;
+  }
+  empty.hidden = true;
+  content.hidden = false;
+  byId('chatThreadName').textContent = activeChat.name || 'Cliente';
+  byId('chatThreadEmail').textContent = activeChat.email || '';
+  byId('chatThreadMeta').textContent = (activeChat.status === 'open' ? 'Conversa aberta' : 'Conversa encerrada') + ' · Iniciada em ' + formatDate(activeChat.createdAt);
+  byId('chatStatusToggleBtn').textContent = activeChat.status === 'open' ? 'Encerrar conversa' : 'Reabrir conversa';
+  byId('chatStatusToggleBtn').disabled = byId('connectionStatus').textContent !== 'Conectado';
+  byId('chatReplyForm').hidden = activeChat.status !== 'open';
+  byId('chatReplyBtn').disabled = byId('connectionStatus').textContent !== 'Conectado' || activeChat.status !== 'open';
+
+  const transcript = byId('chatThreadMessages');
+  transcript.replaceChildren();
+  (activeChat.messages || []).forEach(message => {
+    const article = document.createElement('article');
+    article.className = 'adminChatMessage ' + (message.sender === 'admin' ? 'fromAdmin' : 'fromCustomer');
+    const meta = document.createElement('small');
+    meta.textContent = (message.sender === 'admin' ? 'Atendimento' : activeChat.name || 'Cliente') + ' · ' + formatDate(message.createdAt);
+    const text = document.createElement('p');
+    text.textContent = message.text || '';
+    article.append(meta, text);
+    transcript.appendChild(article);
+  });
+  transcript.scrollTop = transcript.scrollHeight;
+  byId('chatReplyStatus').textContent = activeChat.status === 'open' ? 'As respostas aparecem no chat do cliente em alguns segundos.' : 'Esta conversa está encerrada. Reabra para responder.';
+  renderChatSessions();
+}
+
+async function loadChatSession(sessionId, silent = false) {
+  try {
+    const payload = await apiRequest('/api/admin/chat/sessions/' + encodeURIComponent(sessionId), { admin: true });
+    activeChat = payload.session;
+    renderActiveChat();
+  } catch (error) {
+    if (!silent) showToast(error.message || 'Não foi possível abrir a conversa.', true);
+    throw error;
+  }
+}
+
+async function refreshChatInbox(silent = false) {
+  await loadChatSessions(silent);
+  if (activeChat) await loadChatSession(activeChat.id, silent);
+}
+
+async function sendChatReply(event) {
+  event.preventDefault();
+  if (!activeChat || activeChat.status !== 'open') return;
+  const input = byId('chatReplyInput');
+  const message = input.value.trim();
+  if (!message) return;
+  const button = byId('chatReplyBtn');
+  button.disabled = true;
+  button.textContent = 'Enviando...';
+  byId('chatReplyStatus').textContent = '';
+  try {
+    const payload = await apiRequest('/api/admin/chat/sessions/' + encodeURIComponent(activeChat.id) + '/messages', {
+      method: 'POST',
+      admin: true,
+      body: JSON.stringify({ message })
+    });
+    activeChat = payload.session;
+    input.value = '';
+    renderActiveChat();
+    await loadChatSessions(true);
+    showToast('Resposta enviada ao cliente.');
+  } catch (error) {
+    byId('chatReplyStatus').textContent = error.message || 'Não foi possível enviar a resposta.';
+    showToast(error.message || 'Não foi possível enviar a resposta.', true);
+  } finally {
+    button.textContent = 'Responder';
+    button.disabled = !activeChat || activeChat.status !== 'open' || byId('connectionStatus').textContent !== 'Conectado';
+  }
+}
+
+async function toggleChatStatus() {
+  if (!activeChat) return;
+  const nextStatus = activeChat.status === 'open' ? 'closed' : 'open';
+  if (nextStatus === 'closed' && !window.confirm('Encerrar esta conversa? O cliente não poderá enviar novas mensagens até ela ser reaberta.')) return;
+  const button = byId('chatStatusToggleBtn');
+  button.disabled = true;
+  try {
+    const payload = await apiRequest('/api/admin/chat/sessions/' + encodeURIComponent(activeChat.id), {
+      method: 'PATCH',
+      admin: true,
+      body: JSON.stringify({ status: nextStatus })
+    });
+    activeChat = payload.session;
+    renderActiveChat();
+    await loadChatSessions(true);
+    showToast(nextStatus === 'closed' ? 'Conversa encerrada.' : 'Conversa reaberta.');
+  } catch (error) {
+    showToast(error.message || 'Não foi possível atualizar a conversa.', true);
+  } finally {
+    button.disabled = false;
+  }
+}
+
 connectForm.addEventListener('submit', async event => {
   event.preventDefault();
   byId('connectBtn').disabled = true;
@@ -394,6 +544,13 @@ byId('productFilter').addEventListener('input', renderProducts);
 byId('orderFilter').addEventListener('change', renderOrders);
 byId('orderSearch').addEventListener('input', renderOrders);
 byId('exportOrdersBtn').addEventListener('click', exportOrdersCsv);
+byId('refreshChatsBtn').addEventListener('click', () => refreshChatInbox());
+byId('chatSessionsList').addEventListener('click', async event => {
+  const button = event.target.closest('[data-open-chat]');
+  if (button) await loadChatSession(button.dataset.openChat);
+});
+byId('chatReplyForm').addEventListener('submit', sendChatReply);
+byId('chatStatusToggleBtn').addEventListener('click', toggleChatStatus);
 productsTable.addEventListener('click', async event => {
   const saveButton = event.target.closest('[data-save-product]');
   if (saveButton) {
@@ -477,3 +634,15 @@ ordersTable.addEventListener('click', async event => {
 if (adminKey) {
   connect().catch(error => setConnected(false, error.message || 'Reconecte para carregar os dados.'));
 }
+
+window.setInterval(async () => {
+  if (byId('connectionStatus').textContent !== 'Conectado' || chatPolling) return;
+  chatPolling = true;
+  try {
+    await refreshChatInbox(true);
+  } catch {
+    // O próximo ciclo tentará novamente sem interromper o restante do painel.
+  } finally {
+    chatPolling = false;
+  }
+}, 6000);
