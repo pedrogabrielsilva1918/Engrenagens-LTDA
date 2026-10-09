@@ -24,7 +24,7 @@
         <div>
           <div class="eyebrow">Finalização do pedido</div>
           <h1>Revise seu pedido</h1>
-          <p>Preencha os dados de entrega e escolha a forma de pagamento. Esta versão está preparada para futura integração com gateway de pagamento.</p>
+          <p>Preencha os dados de entrega e escolha a forma de pagamento. Quando configurado, o pagamento será concluído em ambiente seguro do Mercado Pago.</p>
         </div>
         <a href="index.html#catalogo" class="backLink">← Continuar comprando</a>
       </div>
@@ -63,7 +63,7 @@
             <label class="paymentOption"><input type="radio" name="payment" value="card"><span><b>Cartão</b><small>Crédito / parcelamento</small></span></label>
             <label class="paymentOption"><input type="radio" name="payment" value="boleto"><span><b>Boleto</b><small>Prazo sujeito a aprovação</small></span></label>
           </div>
-          <div class="demoNotice">Modo demonstrativo: nenhum pagamento real será processado. O próximo passo é conectar o gateway e o backend de pedidos.</div>
+          <div id="paymentNotice" class="demoNotice">Verificando a configuração de pagamento...</div>
 
           <button id="confirmOrder" class="confirmBtn">Confirmar pedido</button>
           <div id="formError" class="formError" role="alert"></div>
