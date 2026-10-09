@@ -104,7 +104,7 @@ O servidor recalcula subtotais usando os preços do catálogo no backend, agrega
 
 O site inclui um botão flutuante de chat na loja e no checkout. O cliente inicia uma conversa com nome, e-mail e mensagem; um token aleatório por conversa permite que o navegador retome a sessão sem expor mensagens de outros clientes. O token bruto não é armazenado no servidor.
 
-No painel administrativo (`/admin.html`), a área **Atendimento por chat** lista as conversas recebidas, permite responder e encerrar/reabrir uma conversa. O navegador atualiza mensagens automaticamente a cada cinco segundos enquanto o chat está aberto. Isso é atualização periódica (polling), não WebSocket.
+No painel administrativo (`/admin.html`), a área **Atendimento por chat** lista as conversas recebidas, destaca conversas **Aguardando resposta**, permite filtrar abertas/encerradas/todas, responder e encerrar/reabrir uma conversa. O navegador atualiza mensagens automaticamente a cada cinco segundos enquanto o chat está aberto. Isso é atualização periódica (polling), não WebSocket.
 
 As mensagens são gravadas em `/data/chat.json`, ignorado pelo Git e não servido publicamente. Por ser protótipo, antes de produção o chat precisa de limitação de abuso, política de privacidade/retensão, monitoramento e armazenamento adequado; evite guardar dados sensíveis na conversa. O atendimento só é realmente respondido enquanto alguém estiver acompanhando a caixa de entrada.
 
