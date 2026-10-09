@@ -42,7 +42,7 @@
     </section>
 
     <section class="adminSection">
-      <div class="adminSectionHead"><div><h2>Produtos e estoque</h2><p>Altere preço, preço anterior e quantidade disponível. As mudanças são salvas na API.</p></div><input id="productFilter" class="filterInput" placeholder="Buscar produto ou SKU"></div>
+      <div class="adminSectionHead"><div><h2>Produtos e estoque</h2><p>Altere preço e estoque, ou desative temporariamente produtos sem apagar o histórico.</p></div><input id="productFilter" class="filterInput" placeholder="Buscar produto ou SKU"></div>
       <div class="newProductCard">
         <div class="newProductHeading"><div><h3>Cadastrar novo produto</h3><p>O produto aparecerá no catálogo após salvar. SKU deve ser único.</p></div></div>
         <form id="productCreateForm" class="productCreateForm">
@@ -59,8 +59,8 @@
       </div>
       <div class="tableWrap">
         <table class="adminTable">
-          <thead><tr><th>Produto</th><th>Preço (R$)</th><th>Preço anterior (R$)</th><th>Estoque</th><th>Ação</th></tr></thead>
-          <tbody id="productsTable"><tr><td colspan="5" class="tableEmpty">Conecte-se à API para carregar o catálogo.</td></tr></tbody>
+          <thead><tr><th>Produto</th><th>Preço (R$)</th><th>Preço anterior (R$)</th><th>Estoque</th><th>Status</th><th>Ações</th></tr></thead>
+          <tbody id="productsTable"><tr><td colspan="6" class="tableEmpty">Conecte-se à API para carregar o catálogo.</td></tr></tbody>
         </table>
       </div>
     </section>
