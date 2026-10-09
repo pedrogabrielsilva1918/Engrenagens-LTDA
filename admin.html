@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Painel administrativo da Engrenagens LTDA.">
+  <meta name="theme-color" content="#111111">
+  <title>Painel administrativo — Engrenagens LTDA</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body class="adminBody">
+  <div class="topbar"><b>Engrenagens LTDA</b> · painel administrativo</div>
+  <header class="header">
+    <div class="container nav">
+      <a class="brand" href="index.html" style="text-decoration:none;color:inherit"><span class="brandMark">E</span>Engrenagens LTDA</a>
+      <nav class="adminNav"><span class="adminBadge">ADMIN</span><a href="index.html">Ver loja ↗</a></nav>
+    </div>
+  </header>
+
+  <main class="container adminMain">
+    <section class="adminIntro">
+      <div><div class="eyebrow">Operação da loja</div><h1>Painel administrativo</h1><p>Atualize preços e estoque e acompanhe os pedidos recebidos pela API.</p></div>
+      <button id="refreshBtn" class="outlineBtn" disabled>↻ Atualizar dados</button>
+    </section>
+
+    <section class="connectionCard">
+      <div class="connectionTitle"><div><b>Conexão com a API</b><small>A chave é mantida apenas nesta aba do navegador.</small></div><span id="connectionStatus" class="statusTag offline">Desconectado</span></div>
+      <form id="connectForm" class="connectionForm">
+        <div class="adminField urlField"><label for="apiUrl">URL da API</label><input id="apiUrl" type="url" placeholder="http://localhost:3000" value="http://localhost:3000" required></div>
+        <div class="adminField keyField"><label for="adminKey">Chave administrativa</label><input id="adminKey" type="password" autocomplete="current-password" placeholder="Configure ADMIN_API_KEY no servidor" required></div>
+        <button class="darkBtn" type="submit" id="connectBtn">Conectar</button>
+      </form>
+      <div id="connectMessage" class="connectMessage" role="status">Para ativar as funções administrativas, defina ADMIN_API_KEY no ambiente do backend.</div>
+    </section>
+
+    <section class="statsGrid" aria-label="Indicadores">
+      <article class="statCard"><span>Produtos</span><strong id="statProducts">—</strong><small>Itens no catálogo</small></article>
+      <article class="statCard"><span>Unidades em estoque</span><strong id="statStock">—</strong><small>Soma das quantidades cadastradas</small></article>
+      <article class="statCard"><span>Pedidos registrados</span><strong id="statOrders">—</strong><small>Pedidos no servidor</small></article>
+      <article class="statCard"><span>Valor dos pedidos</span><strong id="statValue">—</strong><small>Soma dos totais registrados</small></article>
+    </section>
+
+    <section class="adminSection">
+      <div class="adminSectionHead"><div><h2>Produtos e estoque</h2><p>Altere preço, preço anterior e quantidade disponível. As mudanças são salvas na API.</p></div><input id="productFilter" class="filterInput" placeholder="Buscar produto ou SKU"></div>
+      <div class="tableWrap">
+        <table class="adminTable">
+          <thead><tr><th>Produto</th><th>Preço (R$)</th><th>Preço anterior (R$)</th><th>Estoque</th><th>Ação</th></tr></thead>
+          <tbody id="productsTable"><tr><td colspan="5" class="tableEmpty">Conecte-se à API para carregar o catálogo.</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="adminSection">
+      <div class="adminSectionHead"><div><h2>Pedidos recentes</h2><p>Informações disponíveis no servidor. Clique em um pedido para ver os itens.</p></div><select id="orderFilter" class="filterInput"><option value="all">Todos os pedidos</option><option value="pending_payment">Aguardando pagamento</option></select></div>
+      <div class="tableWrap">
+        <table class="adminTable ordersTable">
+          <thead><tr><th>Pedido</th><th>Data</th><th>Cliente / empresa</th><th>Pagamento</th><th>Status</th><th>Total</th></tr></thead>
+          <tbody id="ordersTable"><tr><td colspan="6" class="tableEmpty">Conecte-se à API para consultar pedidos.</td></tr></tbody>
+        </table>
+      </div>
+      <div id="orderDetails" class="orderDetails hidden"></div>
+    </section>
+    <div id="adminToast" class="adminToast" role="status"></div>
+    <p class="adminDisclaimer">Protótipo administrativo. Use HTTPS, configure uma chave forte no ambiente do servidor e migre de arquivos JSON para banco de dados antes de operar em produção.</p>
+  </main>
+  <footer><div class="container foot"><div><b>Engrenagens LTDA</b><br>Administração da loja.</div><div>© 2026 Engrenagens LTDA</div></div></footer>
+  <script src="config.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>
