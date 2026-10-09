@@ -44,6 +44,8 @@ const subtotalEl = document.getElementById('subtotal');
 const totalEl = document.getElementById('total');
 const formError = document.getElementById('formError');
 const confirmButton = document.getElementById('confirmOrder');
+confirmButton.disabled = true;
+confirmButton.textContent = 'Carregando pedido...';
 
 function getSubtotal() {
   return validCart.reduce((sum, item) => {
@@ -177,7 +179,11 @@ confirmButton.addEventListener('click', async () => {
 syncCheckoutProducts().then(() => {
   if (validCart.length) {
     renderSummary();
+    confirmButton.disabled = false;
+    confirmButton.textContent = 'Confirmar pedido';
   } else {
     showEmptyState();
+    confirmButton.disabled = true;
+    confirmButton.textContent = 'Pedido vazio';
   }
 });
