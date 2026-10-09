@@ -56,7 +56,7 @@ function setConnected(connected, message = '') {
 }
 
 async function loadProducts() {
-  const payload = await apiRequest('/api/products');
+  const payload = await apiRequest('/api/admin/products', { admin: true });
   products = Array.isArray(payload.products) ? payload.products : [];
   renderProducts();
   updateStats();
@@ -93,16 +93,20 @@ function renderProducts() {
   const query = byId('productFilter').value.trim().toLowerCase();
   const filtered = products.filter(p => `${p.name} ${p.sku} ${p.category}`.toLowerCase().includes(query));
   if (!filtered.length) {
-    productsTable.innerHTML = '<tr><td colspan="5" class="tableEmpty">Nenhum produto encontrado.</td></tr>';
+    productsTable.innerHTML = '<tr><td colspan="6" class="tableEmpty">Nenhum produto encontrado.</td></tr>';
     return;
   }
-  productsTable.innerHTML = filtered.map(p => `<tr data-product-row="${p.id}">
-    <td><div class="productName">${escapeHtml(p.name)}</div><span class="productSku">${escapeHtml(p.sku)} · ${escapeHtml(p.category)}</span></td>
-    <td><input class="tableInput" type="number" min="0" step="0.01" aria-label="Preço de ${escapeHtml(p.name)}" data-field="price" value="${Number(p.price).toFixed(2)}"></td>
-    <td><input class="tableInput" type="number" min="0" step="0.01" aria-label="Preço anterior de ${escapeHtml(p.name)}" data-field="old" value="${p.old ?? ''}" placeholder="—"></td>
-    <td><input class="tableInput stockInput" type="number" min="0" step="1" aria-label="Estoque de ${escapeHtml(p.name)}" data-field="stock" value="${Number(p.stock) || 0}"></td>
-    <td><button class="saveRowBtn" data-save-product="${p.id}">Salvar</button></td>
-  </tr>`).join('');
+  productsTable.innerHTML = filtered.map(p => {
+    const active = p.active !== false;
+    return `<tr data-product-row="${p.id}" class="${active ? '' : 'inactiveProductRow'}">
+      <td><div class="productName">${escapeHtml(p.name)}</div><span class="productSku">${escapeHtml(p.sku)} · ${escapeHtml(p.category)}</span></td>
+      <td><input class="tableInput" type="number" min="0" step="0.01" aria-label="Preço de ${escapeHtml(p.name)}" data-field="price" value="${Number(p.price).toFixed(2)}"></td>
+      <td><input class="tableInput" type="number" min="0" step="0.01" aria-label="Preço anterior de ${escapeHtml(p.name)}" data-field="old" value="${p.old ?? ''}" placeholder="—"></td>
+      <td><input class="tableInput stockInput" type="number" min="0" step="1" aria-label="Estoque de ${escapeHtml(p.name)}" data-field="stock" value="${Number(p.stock) || 0}"></td>
+      <td><span class="statusPill ${active ? 'productActive' : 'productInactive'}">${active ? 'Ativo' : 'Inativo'}</span></td>
+      <td><div class="productActions"><button class="saveRowBtn" data-save-product="${p.id}">Salvar</button><button class="toggleProductBtn" data-toggle-product="${p.id}" data-next-active="${!active}">${active ? 'Desativar' : 'Reativar'}</button></div></td>
+    </tr>`;
+  }).join('');
 }
 
 function formatDate(value) {
@@ -301,9 +305,42 @@ byId('refreshBtn').addEventListener('click', async () => {
 });
 byId('productFilter').addEventListener('input', renderProducts);
 byId('orderFilter').addEventListener('change', renderOrders);
-productsTable.addEventListener('click', event => {
-  const button = event.target.closest('[data-save-product]');
-  if (button) saveProduct(Number(button.dataset.saveProduct), button);
+productsTable.addEventListener('click', async event => {
+  const saveButton = event.target.closest('[data-save-product]');
+  if (saveButton) {
+    await saveProduct(Number(saveButton.dataset.saveProduct), saveButton);
+    return;
+  }
+
+  const toggleButton = event.target.closest('[data-toggle-product]');
+  if (!toggleButton) return;
+  const productId = Number(toggleButton.dataset.toggleProduct);
+  const nextActive = toggleButton.dataset.nextActive === 'true';
+  const product = products.find(item => item.id === productId);
+  if (!product) return;
+
+  const confirmation = nextActive
+    ? `Reativar "${product.name}" e voltar a exibi-lo na loja?`
+    : `Desativar "${product.name}"? Ele deixará de aparecer na loja, mas seus pedidos antigos serão preservados.`;
+  if (!window.confirm(confirmation)) return;
+
+  toggleButton.disabled = true;
+  toggleButton.textContent = nextActive ? 'Reativando...' : 'Desativando...';
+  try {
+    const payload = await apiRequest(`/api/admin/products/${productId}`, {
+      method: 'PATCH',
+      admin: true,
+      body: JSON.stringify({ active: nextActive })
+    });
+    products = products.map(item => item.id === productId ? payload.product : item);
+    renderProducts();
+    updateStats();
+    showToast(nextActive ? 'Produto reativado e disponível na loja.' : 'Produto desativado; o histórico foi preservado.');
+  } catch (error) {
+    showToast(error.message || 'Não foi possível alterar o estado do produto.', true);
+    toggleButton.disabled = false;
+    toggleButton.textContent = nextActive ? 'Reativar' : 'Desativar';
+  }
 });
 ordersTable.addEventListener('click', async event => {
   const detailButton = event.target.closest('[data-show-order]');
