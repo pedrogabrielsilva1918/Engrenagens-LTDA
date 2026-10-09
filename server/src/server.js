@@ -85,6 +85,53 @@ app.get('/api/admin/orders', requireAdmin, async (_req, res, next) => {
   }
 });
 
+app.patch('/api/admin/orders/:orderNumber', requireAdmin, async (req, res, next) => {
+  try {
+    const nextStatus = String(req.body?.status || '');
+    const allowedStatuses = ['pending_payment', 'paid', 'processing', 'shipped', 'completed', 'cancelled'];
+    if (!allowedStatuses.includes(nextStatus)) {
+      return res.status(400).json({ error: 'Status inválido.' });
+    }
+
+    const orders = await readJson(ordersFile);
+    const order = orders.find(item => item.orderNumber === req.params.orderNumber);
+    if (!order) return res.status(404).json({ error: 'Pedido não encontrado.' });
+    if (order.status === nextStatus) return res.json({ order });
+
+    const transitions = {
+      pending_payment: ['paid', 'cancelled'],
+      paid: ['processing', 'cancelled'],
+      processing: ['shipped', 'cancelled'],
+      shipped: ['completed'],
+      completed: [],
+      cancelled: []
+    };
+    if (!transitions[order.status]?.includes(nextStatus)) {
+      return res.status(409).json({
+        error: `Não é permitido alterar o pedido de "${order.status}" para "${nextStatus}".`
+      });
+    }
+
+    if (nextStatus === 'cancelled') {
+      const products = await readJson(productsFile);
+      for (const item of order.items || []) {
+        const product = products.find(entry => entry.id === item.id);
+        if (product) product.stock += Number(item.qty) || 0;
+      }
+      await writeJson(productsFile, products);
+      order.cancelledAt = new Date().toISOString();
+      order.cancellationStockRestored = true;
+    }
+
+    order.status = nextStatus;
+    order.updatedAt = new Date().toISOString();
+    await writeJson(ordersFile, orders);
+    res.json({ order });
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.patch('/api/admin/products/:id', requireAdmin, async (req, res, next) => {
   try {
     const productId = Number(req.params.id);
