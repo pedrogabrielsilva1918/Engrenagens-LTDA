@@ -8,8 +8,9 @@ Requer Node.js 20 ou superior.
 
 ```bash
 npm install
-cp .env.example .env
 ```
+
+Se o arquivo `.env` ainda não existir, crie-o com `cp .env.example .env`. Se ele já existir, não o sobrescreva; apenas edite-o para adicionar as variáveis que estiverem faltando.
 
 2. Edite `.env` e defina uma chave administrativa secreta. Gere uma chave de 32 caracteres com:
 
