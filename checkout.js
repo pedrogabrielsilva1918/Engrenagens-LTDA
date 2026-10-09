@@ -127,20 +127,40 @@ async function createOrderOnApi(data) {
   const baseUrl = (window.API_BASE_URL || '').replace(/\/$/, '');
   if (!baseUrl) return { order: await saveOrderLocally(data), demo: true };
 
-  const response = await fetch(`${baseUrl}/api/orders`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ customer: data, payment: data.payment, items: validCart })
+  const statusResponse = await fetch(baseUrl + '/api/payments/status', {
+    headers: { Accept: 'application/json' }
   });
+  let paymentConfig = {};
+  try { paymentConfig = await statusResponse.json(); } catch { /* resposta inválida */ }
+  if (!statusResponse.ok) throw new Error('Não foi possível consultar a configuração de pagamento da API.');
 
-  let payload = {};
-  try { payload = await response.json(); } catch { /* resposta sem JSON */ }
-
-  if (!response.ok) {
-    throw new Error(payload.error || 'Não foi possível criar o pedido.');
+  if (paymentConfig.mode === 'incomplete') {
+    throw new Error('A integração Mercado Pago está incompleta no servidor. Configure MP_ACCESS_TOKEN, MP_WEBHOOK_SECRET e PUBLIC_BASE_URL no arquivo .env.');
   }
 
-  return { order: payload.order, demo: false };
+  if (paymentConfig.mode === 'mercadopago') {
+    const response = await fetch(baseUrl + '/api/payments/checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ customer: data, payment: data.payment, items: validCart })
+    });
+    let payload = {};
+    try { payload = await response.json(); } catch { /* resposta sem JSON */ }
+    if (!response.ok) throw new Error(payload.error || 'Não foi possível iniciar o pagamento.');
+    if (!payload.checkoutUrl) throw new Error('O provedor não retornou o endereço de pagamento.');
+    return { redirectUrl: payload.checkoutUrl, orderNumber: payload.orderNumber, demo: false };
+  }
+
+  // Sem credenciais, mantém o fluxo de demonstração e nunca simula uma aprovação.
+  const response = await fetch(baseUrl + '/api/orders', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({ customer: data, payment: data.payment, items: validCart })
+  });
+  let payload = {};
+  try { payload = await response.json(); } catch { /* resposta sem JSON */ }
+  if (!response.ok) throw new Error(payload.error || 'Não foi possível criar o pedido.');
+  return { order: payload.order, demo: true };
 }
 
 confirmButton.addEventListener('click', async () => {
@@ -157,13 +177,18 @@ confirmButton.addEventListener('click', async () => {
 
   try {
     const result = await createOrderOnApi(data);
+    if (result.redirectUrl) {
+      localStorage.removeItem('engrenagens-cart');
+      window.location.assign(result.redirectUrl);
+      return;
+    }
     localStorage.removeItem('engrenagens-cart');
 
     content.classList.add('hidden');
     successState.classList.remove('hidden');
 
     const modeText = result.demo
-      ? 'A confirmação foi registrada localmente neste navegador.'
+      ? 'Pedido registrado apenas para demonstração. Nenhum pagamento real foi processado.'
       : 'O pedido foi registrado no servidor e o estoque foi atualizado.';
     document.getElementById('successText').textContent =
       `Número do pedido: ${result.order.orderNumber}. Total: ${brl(result.order.total ?? result.order.subtotal)}. ${modeText}`;
@@ -176,7 +201,56 @@ confirmButton.addEventListener('click', async () => {
   }
 });
 
+async function updatePaymentNotice() {
+  const notice = document.getElementById('paymentNotice');
+  const baseUrl = (window.API_BASE_URL || '').replace(/\/$/, '');
+  if (!notice || !baseUrl) return;
+  try {
+    const response = await fetch(baseUrl + '/api/payments/status', { headers: { Accept: 'application/json' } });
+    if (!response.ok) return;
+    const config = await response.json();
+    if (config.mode === 'mercadopago') {
+      notice.textContent = 'Pagamento seguro: você será redirecionado ao Mercado Pago para concluir a transação.';
+    } else if (config.mode === 'incomplete') {
+      notice.textContent = 'A integração de pagamento foi iniciada, mas falta configurar credenciais e URL HTTPS no servidor.';
+    } else {
+      notice.textContent = 'Modo demonstrativo: nenhum pagamento real será processado até configurar um gateway.';
+    }
+  } catch {
+    notice.textContent = 'Não foi possível verificar a configuração de pagamento. Tente novamente em instantes.';
+  }
+}
+
+function displayPaymentReturn() {
+  const params = new URLSearchParams(window.location.search);
+  const paymentReturn = params.get('payment');
+  if (!['success', 'pending', 'failure'].includes(paymentReturn)) return false;
+
+  const orderNumber = params.get('order');
+  content.classList.add('hidden');
+  emptyState.classList.add('hidden');
+  successState.classList.remove('hidden');
+  confirmButton.disabled = true;
+
+  const title = document.getElementById('successTitle');
+  const message = {
+    success: 'Retorno recebido. O servidor confirmará o pagamento somente após validar a notificação do Mercado Pago. Não envie o pedido novamente.',
+    pending: 'O pagamento está pendente ou em processamento. Aguarde a confirmação do Mercado Pago antes de considerar o pedido pago.',
+    failure: 'O pagamento não foi confirmado. Consulte o painel administrativo antes de tentar novamente para evitar pedidos duplicados.'
+  };
+  title.textContent = paymentReturn === 'success'
+    ? 'Estamos confirmando seu pagamento'
+    : (paymentReturn === 'pending' ? 'Pagamento em processamento' : 'Pagamento não confirmado');
+  document.getElementById('successText').textContent =
+    (orderNumber ? 'Pedido: ' + orderNumber + '. ' : '') + message[paymentReturn];
+  return true;
+}
+
+const returnedFromPayment = displayPaymentReturn();
+updatePaymentNotice();
+
 syncCheckoutProducts().then(() => {
+  if (returnedFromPayment) return;
   if (validCart.length) {
     renderSummary();
     confirmButton.disabled = false;
