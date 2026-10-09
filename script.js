@@ -19,6 +19,10 @@ async function syncProductsFromApi() {
     const payload = await response.json();
     if (!Array.isArray(payload.products)) return;
     products = payload.products;
+    state.cart = state.cart
+      .map(item => ({ id: item.id, qty: Math.min(Number(item.qty) || 0, products.find(p => p.id === item.id)?.stock ?? 0) }))
+      .filter(item => item.qty > 0);
+    localStorage.setItem('engrenagens-cart', JSON.stringify(state.cart));
     populateQuoteProducts();
     render();
     updateCart();
