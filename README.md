@@ -35,3 +35,31 @@ window.API_BASE_URL = 'https://api.seudominio.com';
 Sem uma URL configurada, o checkout permanece em modo demonstrativo.
 
 > A persistência atual usa arquivos JSON e é adequada para desenvolvimento/protótipo. Antes de produção, substitua por banco de dados, autenticação, controle de concorrência, logs e gateway de pagamento.
+
+## Painel administrativo
+
+Abra `admin.html` para consultar pedidos e editar preço/preço anterior/estoque dos produtos. O painel exige uma chave que não deve ser publicada.
+
+### Configurar a chave administrativa
+
+```bash
+cp .env.example .env
+```
+
+Edite o arquivo `.env` e troque `ADMIN_API_KEY` por uma chave forte e exclusiva. O `.env` está no `.gitignore` e não deve ser enviado ao GitHub.
+
+Depois instale a nova dependência e reinicie a API:
+
+```bash
+npm install
+npm run dev
+```
+
+No painel `admin.html`, informe a URL da API (localmente `http://localhost:3000`) e a mesma chave configurada no servidor. A chave fica em `sessionStorage` apenas para a sessão atual.
+
+Rotas administrativas protegidas por `x-admin-key`:
+
+- `GET /api/admin/orders` — consulta todos os pedidos.
+- `PATCH /api/admin/products/:id` — atualiza preço, preço anterior, estoque e selo.
+
+Em produção, configure `CORS_ORIGIN` para a origem exata do frontend, publique a API com HTTPS e use banco de dados persistente antes de processar vendas reais.
